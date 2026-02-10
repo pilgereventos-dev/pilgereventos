@@ -96,12 +96,18 @@ export default function Dashboard() {
             if (response.ok) {
                 alert('Mensagem enviada com sucesso!');
             } else {
-                const errorData = await response.json();
-                alert(`Erro ao enviar mensagem: ${errorData.error || 'Erro desconhecido'}`);
+                const errorText = await response.text();
+                console.error('Erro detalhado:', errorText);
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    alert(`Erro ao enviar mensagem: ${errorJson.error || errorText}`);
+                } catch (e) {
+                    alert(`Erro ao enviar mensagem (Raw): ${errorText}`);
+                }
             }
-        } catch (error) {
-            console.error(error);
-            alert('Erro de conexão.');
+        } catch (error: any) {
+            console.error('Erro de rede/cliente:', error);
+            alert(`Erro de conexão: ${error.message || 'Verifique o console para mais detalhes.'}`);
         }
     };
 
