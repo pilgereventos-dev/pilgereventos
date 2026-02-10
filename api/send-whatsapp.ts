@@ -90,13 +90,7 @@ _Este é um convite digital e pessoal._`;
             },
             body: JSON.stringify({
                 number: number,
-                options: {
-                    delay: 1200,
-                    presence: "composing",
-                },
-                textMessage: {
-                    text: message,
-                },
+                text: message,
             }),
         });
 
