@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
     if (request.method !== 'POST') {
@@ -22,7 +23,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         });
     }
 
-    const { createClient } = require('@supabase/supabase-js');
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch ConnectyHub API credentials AND welcome message template
