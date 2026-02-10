@@ -13,8 +13,11 @@ export const processQueue = inngest.createFunction(
         { cron: "* * * * *" }
     ],
     async ({ step }) => {
-        if (!supabaseUrl || !supabaseServiceKey) {
-            throw new Error("Supabase credentials missing (URL or Service Role Key)");
+        if (!supabaseUrl) {
+            throw new Error("Supabase URL missing (VITE_SUPABASE_URL or SUPABASE_URL)");
+        }
+        if (!supabaseServiceKey) {
+            throw new Error("Supabase Service Key missing (SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY)");
         }
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
