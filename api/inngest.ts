@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const helloWorld = inngest.createFunction(
             { id: "hello-world-dynamic" },
             { event: "test/hello.world" },
-            async ({ event, step }) => {
+            async ({ event: _event, step: _step }) => {
                 return { message: "Hello from Dynamic Inngest!" };
             }
         );
