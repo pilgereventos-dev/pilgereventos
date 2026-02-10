@@ -1,13 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // 1. Basic Health Check for GET requests (browsers/uptime monitors)
     if (req.method === 'GET') {
-        return res.status(200).json({
-            status: 'ok',
-            mode: 'dynamic-wrapper',
-            message: 'To test Inngest, send a POST request or use the Dashboard.'
-        });
+        return res.status(200).json({ status: 'ok', mode: 'dynamic-wrapper', message: 'Send POST to test Inngest' });
     }
 
     try {
