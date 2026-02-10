@@ -96,7 +96,8 @@ export default function Dashboard() {
             if (response.ok) {
                 alert('Mensagem enviada com sucesso!');
             } else {
-                alert('Erro ao enviar mensagem.');
+                const errorData = await response.json();
+                alert(`Erro ao enviar mensagem: ${errorData.error || 'Erro desconhecido'}`);
             }
         } catch (error) {
             console.error(error);
