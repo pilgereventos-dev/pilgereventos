@@ -1,4 +1,4 @@
-import { inngest } from "../client";
+import { inngest } from "../client.js";
 import { createClient } from "@supabase/supabase-js";
 
 // Initialize Supabase Client (Non-Edge environment)

@@ -105,7 +105,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         // Trigger Inngest to process the queue immediately
         try {
             // Dynamically import to avoid top-level await issues if any
-            const { inngest } = await import('../../src/inngest/client');
+            const { inngest } = await import('../../src/inngest/client.js');
             await inngest.send({
                 name: "app/process.queue",
                 data: {}
