@@ -1,0 +1,17 @@
+{
+    "extends": "./tsconfig.node.json",
+    "compilerOptions": {
+        "lib": [
+            "ES2022"
+        ],
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "target": "ES2022",
+        "outDir": ".vercel/output/functions",
+        "esModuleInterop": true,
+        "strict": true
+    },
+    "include": [
+        "api/**/*.ts"
+    ]
+}
