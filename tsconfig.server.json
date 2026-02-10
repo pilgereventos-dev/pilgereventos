@@ -4,12 +4,13 @@
         "lib": [
             "ES2022"
         ],
-        "module": "CommonJS",
-        "moduleResolution": "node",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
         "target": "ES2022",
         "outDir": ".vercel/output/functions",
         "esModuleInterop": true,
-        "strict": true
+        "strict": true,
+        "verbatimModuleSyntax": false
     },
     "include": [
         "api/**/*.ts"
