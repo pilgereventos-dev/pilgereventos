@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+:root {
+  --gold: #D4AF37;
+  --ocean-dark: #050a10;
+}
+
+body {
+  @apply bg-ocean text-white font-sans overflow-x-hidden;
+}
+
+h1,
+h2,
+h3,
+.font-serif {
+  @apply font-serif;
+}
+
+.gold-text {
+  background: linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.btn-gold {
+  background: linear-gradient(to right, #BF953F, #AA771C);
+  color: #000;
+  font-weight: 700;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-gold:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+}
+
+@keyframes waveMove {
+  0% {
+    transform: translateX(-5%) translateY(2%);
+  }
+
+  50% {
+    transform: translateX(5%) translateY(-2%);
+  }
+
+  100% {
+    transform: translateX(-5%) translateY(2%);
+  }
+}
+
+.wave-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 150px;
+  background: url('https://svgshare.com/i/13v6.svg');
+  opacity: 0.1;
+  animation: waveMove 20s linear infinite;
+  pointer-events: none;
+}
