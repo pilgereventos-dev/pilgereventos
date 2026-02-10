@@ -1,5 +1,11 @@
-import { serve } from "inngest/node";
-import { inngest } from "./_lib/inngest/client";
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { serve } = require("inngest/node");
+const { Inngest } = require("inngest");
+
+// Initialize Inngest client locally to avoid import issues from other files
+const inngest = new Inngest({ id: "pilger-eventos" });
+
 const helloWorld = inngest.createFunction(
     { id: "hello-world" },
     { event: "test/hello.world" },
@@ -10,5 +16,5 @@ const helloWorld = inngest.createFunction(
 
 export default serve({
     client: inngest,
-    functions: [helloWorld], // processQueue temporarily removed
+    functions: [helloWorld],
 });
