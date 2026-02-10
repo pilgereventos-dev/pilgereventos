@@ -1,14 +1,10 @@
 import { inngest } from "./client";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase Client (Node.js environment)
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// Initialize Supabase Client (Node.js environment) - Lazy or Safe Init
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 
-// We need to handle the case where env vars might be missing during build time vs runtime
-const supabase = (supabaseUrl && supabaseServiceKey)
-    ? createClient(supabaseUrl, supabaseServiceKey)
-    : null;
 
 export const processQueue = inngest.createFunction(
     { id: "process-message-queue" },
@@ -17,9 +13,12 @@ export const processQueue = inngest.createFunction(
         { cron: "* * * * *" }
     ],
     async ({ step }) => {
-        if (!supabase) {
-            throw new Error("Supabase credentials missing");
+        if (!supabaseUrl || !supabaseServiceKey) {
+            throw new Error("Supabase credentials missing (URL or Service Role Key)");
         }
+
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
 
         // 1. Fetch Configuration
         const config = await step.run("fetch-config", async () => {
