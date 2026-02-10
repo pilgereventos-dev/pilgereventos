@@ -12,7 +12,10 @@ const supabase = (supabaseUrl && supabaseServiceKey)
 
 export const processQueue = inngest.createFunction(
     { id: "process-message-queue" },
-    { event: "app/process.queue" },
+    [
+        { event: "app/process.queue" },
+        { cron: "* * * * *" }
+    ],
     async ({ step }) => {
         if (!supabase) {
             throw new Error("Supabase credentials missing");
