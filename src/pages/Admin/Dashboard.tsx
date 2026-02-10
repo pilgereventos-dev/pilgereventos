@@ -105,6 +105,22 @@ export default function Dashboard() {
         }
     };
 
+    const handleDeleteGuest = async (id: string, name: string) => {
+        if (!confirm(`Tem certeza que deseja EXCLUIR ${name}? Essa ação não pode ser desfeita.`)) return;
+
+        const { error } = await supabase
+            .from('guests')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert('Erro ao excluir: ' + error.message);
+        } else {
+            alert('Convidado excluído com sucesso.');
+            fetchData();
+        }
+    };
+
     const handleApproveUser = async (id: string) => {
         if (!confirm('Tem certeza que deseja aprovar este usuário como administrador?')) return;
 
@@ -322,6 +338,12 @@ export default function Dashboard() {
                                     >
                                         <Send size={14} /> Reenviar
                                     </button>
+                                    <button
+                                        onClick={() => handleDeleteGuest(guest.id, guest.name)}
+                                        className="col-span-2 py-3 rounded-lg text-xs uppercase tracking-widest font-bold bg-red-600/20 text-red-400 border border-red-500/30 flex items-center justify-center gap-2"
+                                    >
+                                        Excluir
+                                    </button>
                                 </div>
                             </div>
                         ))
@@ -396,6 +418,13 @@ export default function Dashboard() {
                                                 title="Reenviar WhatsApp"
                                             >
                                                 <Send size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteGuest(guest.id, guest.name)}
+                                                className="ml-2 text-xs uppercase tracking-widest font-bold px-4 py-2 rounded bg-red-600 text-white hover:bg-red-500 transition-all"
+                                                title="Excluir"
+                                            >
+                                                <LogOut size={14} className="rotate-180" />
                                             </button>
                                         </td>
                                     </tr>

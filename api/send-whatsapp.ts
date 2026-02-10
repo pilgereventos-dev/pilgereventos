@@ -17,7 +17,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error('Missing Supabase credentials');
-        return response.status(500).json({ error: 'Server configuration error (Supabase)' });
+        return response.status(500).json({
+            error: `Server configuration error (Supabase). Missing: ${!supabaseUrl ? 'URL' : ''} ${!supabaseServiceKey ? 'Key' : ''}`
+        });
     }
 
     const { createClient } = require('@supabase/supabase-js');
