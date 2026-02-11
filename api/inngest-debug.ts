@@ -8,7 +8,7 @@ const debugInngest = new Inngest({ id: "debug-client" });
 const helloWorld = debugInngest.createFunction(
     { id: "debug-hello-world" },
     { event: "test/hello.world" },
-    async ({ event, step }) => {
+    async () => {
         return { message: "Hello from Inngest Debug!" };
     }
 );
