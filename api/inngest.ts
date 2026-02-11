@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 const inngest = new Inngest({ id: "pilger-eventos" });
 
 // Initialize Supabase Client using server-side env vars
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const supabase = (supabaseUrl && supabaseServiceKey)
@@ -93,8 +93,7 @@ const processQueue = inngest.createFunction(
                         },
                         body: JSON.stringify({
                             number: number,
-                            options: { delay: 1200, presence: "composing" },
-                            textMessage: { text: msg.content },
+                            text: msg.content,
                         }),
                     });
 

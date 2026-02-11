@@ -2,15 +2,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!supabaseUrl || !supabaseServiceKey) throw new Error('Missing Supabase credentials');
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = (supabaseUrl && supabaseServiceKey)
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null;
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
     if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
+
+    if (!supabase) return response.status(500).json({ error: 'Missing Supabase credentials' });
 
     const { rule_id } = request.body;
     if (!rule_id) return response.status(400).json({ error: 'Missing rule_id' });

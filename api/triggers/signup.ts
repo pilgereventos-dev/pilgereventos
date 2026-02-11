@@ -1,20 +1,26 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { Inngest } from 'inngest';
 
 // Initialize Supabase Admin Client
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase credentials');
-}
+const supabase = (supabaseUrl && supabaseServiceKey)
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Initialize Inngest client inline (self-contained for Vercel)
+const inngest = new Inngest({ id: "pilger-eventos" });
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
     if (request.method !== 'POST') {
         return response.status(405).json({ error: 'Method not allowed' });
+    }
+
+    if (!supabase) {
+        return response.status(500).json({ error: 'Missing Supabase credentials' });
     }
 
     const { guest_id } = request.body;
@@ -24,10 +30,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     try {
-        // 1. Fetch Guest Details (for variable replacement if needed immediately, though queue stores template mostly)
-        // Actually we just need the ID to schedule. 
-
-        // 2. Fetch Active Signup Relative Rules
+        // 1. Fetch Active Signup Relative Rules
         const { data: rules, error: rulesError } = await supabase
             .from('automation_rules')
             .select('*')
@@ -64,8 +67,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     content: rule.message_template.replace(/{name}/g, guest.name),
                     scheduled_for: scheduledIso,
                     status: 'pending',
-                    target_phone: null, // Use default
-                    target_name: null   // Use default
+                    target_phone: guest.phone,
+                    target_name: guest.name
                 });
 
                 // 2. Companion 1 Item
@@ -104,16 +107,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
         // Trigger Inngest to process the queue immediately
         try {
-            // Dynamically import to avoid top-level await issues if any
-            const { inngest } = await import('../../src/inngest/client.js');
             await inngest.send({
                 name: "app/process.queue",
                 data: {}
             });
-            console.log("Inngest event triggered");
+            console.log("Inngest event triggered successfully");
         } catch (inngestErr) {
             console.error("Failed to trigger Inngest:", inngestErr);
-            // Don't fail the request just because trigger failed, cron will pick it up later if configured
+            // Don't fail the request - cron will pick it up within 1 minute
         }
 
         return response.status(200).json({ message: `Scheduled ${queueItems.length} messages`, tasks: queueItems });
