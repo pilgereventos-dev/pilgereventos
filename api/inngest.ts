@@ -102,13 +102,15 @@ const processQueue = inngest.createFunction(
                         results.push({ id: msg.id, status: 'sent' });
                     } else {
                         const errText = await response.text();
-                        console.error(`Failed to send ${msg.id}: ${errText}`);
-                        await supabase.from('message_queue').update({ status: 'failed' }).eq('id', msg.id);
-                        results.push({ id: msg.id, status: 'failed', error: errText });
+                        console.error(`Failed to send ${msg.id} (HTTP ${response.status}): ${errText}`);
+                        console.error(`Request URL: ${config.apiUrl}/message/sendText/${config.instanceName}`);
+                        console.error(`Request body: number=${number}, text length=${msg.content?.length}`);
+                        await supabase.from('message_queue').update({ status: 'failed', sent_at: new Date().toISOString() }).eq('id', msg.id);
+                        results.push({ id: msg.id, status: 'failed', error: errText, httpStatus: response.status });
                     }
                 } catch (e: any) {
-                    console.error(`Exception sending ${msg.id}:`, e);
-                    await supabase.from('message_queue').update({ status: 'failed' }).eq('id', msg.id);
+                    console.error(`Exception sending ${msg.id}:`, e.message);
+                    await supabase.from('message_queue').update({ status: 'failed', sent_at: new Date().toISOString() }).eq('id', msg.id);
                     results.push({ id: msg.id, status: 'failed', error: e.message });
                 }
 
