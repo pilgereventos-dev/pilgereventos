@@ -118,7 +118,10 @@ export default function Home() {
 
     return (
         <div className="min-h-screen flex flex-col items-center relative overflow-hidden text-white font-sans">
-            <div className="ocean-bg fixed inset-0 z-[-1] bg-[radial-gradient(circle_at_50%_-20%,#1a2a3a_0%,#050a10_70%)]"></div>
+            <div className="fixed inset-0 z-[-1]">
+                <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/image/fundo  pilger eventos.png')" }}></div>
+                <div className="absolute inset-0 bg-black/70"></div>
+            </div>
             <div className="wave-decoration"></div>
 
             {/* Header / Hero */}
@@ -132,8 +135,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                <p className="uppercase tracking-[0.5em] text-xs mb-4 text-amber-200/60 font-medium">Imobiliária Guilherme Pilger apresenta</p>
-                <h1 className="text-5xl md:text-8xl font-bold mb-6 gold-text tracking-tighter uppercase font-serif">FOLIA DO PILGER</h1>
+                <h1 className="text-5xl md:text-8xl font-bold mb-6 gold-text tracking-tighter uppercase font-serif">GUILHERME PILGER</h1>
                 <p className="text-lg md:text-2xl font-light text-gray-400 italic mb-8">
                     Vem curtir o melhor carnaval de frente pro mar!
                 </p>
@@ -147,7 +149,9 @@ export default function Home() {
                 <div className="lg:col-span-7 order-1 space-y-4">
                     <h2 className="text-3xl md:text-4xl font-serif gold-text">O Litoral é o Nosso Palco</h2>
                     <p className="text-gray-300 leading-relaxed text-lg">
-                        A <strong>Folia do Pilger</strong> chega à Praia Brava para uma tarde e noite inesquecíveis. Começaremos com o melhor do sertanejo ao pôr do sol, evoluindo para a sofisticação do DJ acompanhado de Saxofone. Uma experiência sensorial completa no endereço mais exclusivo de Itajaí.
+                        venha curtir com a gente um sunset inesquecível.<br />
+                        drinks, chope, sertanejo, Dj.<br />
+                        Uma experiência sensorial completa no endereço mais exclusivo da Brava em parceria com a Vokkan |Urbanismo
                     </p>
                 </div>
 
@@ -297,7 +301,7 @@ export default function Home() {
                         <MapPin className="w-8 h-8 text-[#D4AF37] opacity-70" />
                         <div>
                             <h4 className="text-xs uppercase tracking-widest text-[#D4AF37]">Localização</h4>
-                            <p className="text-white font-medium text-sm">Av. Carlos Drummond de Andrade, Praia Brava - Itajaí/SC</p>
+                            <p className="text-white font-medium text-sm">Av. Carlos Drummond de Andrade, 33, Praia Brava - Itajaí/SC</p>
                         </div>
                     </div>
                     <div className="glass-card p-6 rounded-xl flex gap-4 items-center">
