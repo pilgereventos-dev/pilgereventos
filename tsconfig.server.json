@@ -13,6 +13,7 @@
         "verbatimModuleSyntax": false
     },
     "include": [
-        "api/**/*.ts"
+        "api/**/*.ts",
+        "src/**/*.ts"
     ]
 }
