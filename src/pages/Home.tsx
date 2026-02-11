@@ -147,7 +147,7 @@ export default function Home() {
 
                 {/* Section 1: Descrição */}
                 <div className="lg:col-span-7 order-1 space-y-4">
-                    <h2 className="text-3xl md:text-4xl font-serif gold-text">O Litoral é o Nosso Palco</h2>
+                    <h2 className="text-xl md:text-3xl lg:text-4xl font-serif gold-text">O Litoral é o Nosso Palco</h2>
                     <p className="text-gray-300 leading-relaxed text-lg">
                         venha curtir com a gente um sunset inesquecível.<br />
                         drinks, chope, sertanejo, Dj.<br />
