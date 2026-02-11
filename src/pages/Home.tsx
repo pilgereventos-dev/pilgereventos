@@ -137,7 +137,8 @@ export default function Home() {
 
                 <h1 className="text-5xl md:text-8xl font-bold mb-6 gold-text tracking-tighter uppercase font-serif">GUILHERME PILGER</h1>
                 <p className="text-lg md:text-2xl font-light text-gray-400 italic mb-8">
-                    Vem curtir o melhor carnaval de frente pro mar!
+                    Vem curtir o melhor carnaval de <br />
+                    frente pro mar!
                 </p>
                 <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mx-auto"></div>
             </header>
@@ -148,11 +149,14 @@ export default function Home() {
                 {/* Section 1: Descrição */}
                 <div className="lg:col-span-7 order-1 space-y-4">
                     <h2 className="text-xl md:text-3xl lg:text-4xl font-serif gold-text">O Litoral é o Nosso Palco</h2>
-                    <p className="text-gray-300 leading-relaxed text-lg">
-                        venha curtir com a gente um sunset inesquecível.<br />
-                        drinks, chope, sertanejo, Dj.<br />
-                        Uma experiência sensorial completa no endereço mais exclusivo da Brava em parceria com a Vokkan |Urbanismo
-                    </p>
+                    <div className="space-y-6">
+                        <p className="text-gray-300 leading-relaxed text-sm md:text-base">
+                            Venha curtir com a gente um <strong className="text-white font-semibold">sunset inesquecível.</strong><br />
+                            <strong className="text-white font-semibold">Drinks, chope, sertanejo, Dj.</strong><br />
+                            Uma experiência sensorial completa no endereço mais <strong className="text-white font-semibold">exclusivo da Brava em parceria com a Vokkan | Urbanismo</strong>
+                        </p>
+                        <img src="/image/vokkan.jpg" alt="Vokkan Urbanismo" className="h-6 opacity-60 rounded-full mix-blend-screen" />
+                    </div>
                 </div>
 
                 {/* Section 2: Formulário */}
