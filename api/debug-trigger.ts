@@ -7,7 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         // Dynamic import to match the successful pattern in api/inngest.ts
-        const { inngest } = await import("./_lib/inngest/client");
+        const { inngest } = await import("../src/inngest/client");
 
         console.log("Sending test event app/process.queue...");
 

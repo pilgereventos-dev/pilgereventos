@@ -11,10 +11,7 @@
     ],
     "functions": {
         "api/**/*.ts": {
-            "includeFiles": "api/_lib/**/*"
-        },
-        "api/**/*.js": {
-            "includeFiles": "api/_lib/**/*"
+            "maxDuration": 60
         }
     }
 }

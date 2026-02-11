@@ -1,11 +1,12 @@
 import { inngest } from "../client.js";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase Client (Non-Edge environment)
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// Initialize Supabase Client
+// Support both VITE_ prefixed (frontend) and standard (backend) environment variables
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 
-// We need to handle the case where env vars might be missing during build time vs runtime
+// Initialize client if credentials exist, otherwise function will fail strictly when running
 const supabase = (supabaseUrl && supabaseServiceKey)
     ? createClient(supabaseUrl, supabaseServiceKey)
     : null;
@@ -18,7 +19,7 @@ export const processQueue = inngest.createFunction(
     ],
     async ({ step }) => {
         if (!supabase) {
-            throw new Error("Supabase credentials missing");
+            throw new Error("Supabase credentials missing. Ensure VITE_SUPABASE_URL/SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.");
         }
 
         // 1. Fetch Configuration
@@ -102,10 +103,7 @@ export const processQueue = inngest.createFunction(
                     } else {
                         const errText = await response.text();
                         console.error(`Failed to send ${msg.id}: ${errText}`);
-                        // Don't mark as failed immediately if it's a temporary error? 
-                        // For now, let's mark failed to avoid loop, or maybe Inngest handles retries if we throw?
-                        // If we throw, Inngest retries the WHOLE step. 
-                        // Since we are processing a batch, we probably shouldn't throw for one failure.
+                        // Mark failed
                         await supabase.from('message_queue').update({ status: 'failed' }).eq('id', msg.id);
                         results.push({ id: msg.id, status: 'failed', error: errText });
                     }
@@ -115,15 +113,13 @@ export const processQueue = inngest.createFunction(
                     results.push({ id: msg.id, status: 'failed', error: e.message });
                 }
 
-                // Small delay between messages to be nice to the API
+                // Small delay between messages
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
             return results;
         });
 
         // 4. Check if more messages exist
-        // logic: if we fetched 50, there might be more.
-        // Inngest allows us to send another event to self.
         if (messages.length === 50) {
             await step.sendEvent("trigger-next-batch", {
                 name: "app/process.queue",
