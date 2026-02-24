@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
-import { LogOut, Users, CheckCircle, Search, RefreshCw, Send, UserCheck, ShieldAlert } from 'lucide-react';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { LogOut, Users, CheckCircle, Search, RefreshCw, Send, UserCheck, ShieldAlert, UserPlus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Guest {
@@ -33,10 +34,20 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEvent, setSelectedEvent] = useState('all');
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const [newAdminEmail, setNewAdminEmail] = useState('');
+    const [newAdminPassword, setNewAdminPassword] = useState('');
+    const [creatingAdmin, setCreatingAdmin] = useState(false);
+    const [showAdminForm, setShowAdminForm] = useState(false);
     const navigate = useNavigate();
 
     const fetchData = async () => {
         setLoading(true);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            setCurrentUserEmail(user.email ?? null);
+        }
 
         // Fetch Guests
         const { data: guestsData } = await supabase
@@ -48,7 +59,7 @@ export default function Dashboard() {
             setGuests(guestsData);
         }
 
-        // Fetch Profiles (for admin approval)
+        // Fetch Profiles (for admin approval/management)
         const { data: profilesData } = await supabase
             .from('profiles')
             .select('*')
@@ -146,6 +157,66 @@ export default function Dashboard() {
         }
     };
 
+    const handleCreateAdmin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setCreatingAdmin(true);
+
+        try {
+            const { data, error } = await supabaseAdmin.auth.signUp({
+                email: newAdminEmail,
+                password: newAdminPassword,
+            });
+
+            if (error) {
+                alert('Erro ao criar administrador: ' + error.message);
+                return;
+            }
+
+            if (data.user) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .update({ approved: true, role: 'admin' })
+                    .eq('id', data.user.id);
+
+                if (profileError) {
+                    await supabase.from('profiles').insert({
+                        id: data.user.id,
+                        email: newAdminEmail,
+                        approved: true,
+                        role: 'admin'
+                    });
+                }
+            }
+
+            alert('Administrador criado com sucesso!');
+            setNewAdminEmail('');
+            setNewAdminPassword('');
+            setShowAdminForm(false);
+            fetchData();
+        } catch (error: any) {
+            alert('Erro ao criar administrador.');
+            console.error(error);
+        } finally {
+            setCreatingAdmin(false);
+        }
+    };
+
+    const handleDeleteAdmin = async (id: string, email: string) => {
+        if (!confirm(`ATENÇÃO: Deseja remover o acesso de administrador do email ${email}?`)) return;
+
+        const { error } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert('Erro ao remover administrador: ' + error.message);
+        } else {
+            alert('Administrador removido com sucesso.');
+            fetchData();
+        }
+    };
+
     const guestHistory = useMemo(() => {
         const history: Record<string, string[]> = {};
         guests.forEach(g => {
@@ -174,6 +245,7 @@ export default function Dashboard() {
     );
 
     const pendingUsers = profiles.filter(p => !p.approved);
+    const approvedAdmins = profiles.filter(p => p.approved);
 
     // To count total people confirmed, we need to sum guests_count too for confirmed/checked_in
     const totalPeopleConfirmed = filteredByEvent
@@ -203,42 +275,129 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            {/* Pending Approvals Section */}
-            {pendingUsers.length > 0 && (
-                <div className="max-w-7xl mx-auto mb-12">
-                    <div className="glass-card p-6 rounded-xl border border-yellow-500/30 bg-yellow-500/5">
-                        <div className="flex items-center gap-3 mb-6">
-                            <ShieldAlert className="text-yellow-500" />
-                            <h2 className="text-xl font-serif text-yellow-500 uppercase tracking-widest">Aprovações Pendentes</h2>
+            {/* Admin Management Section - ONLY FOR MASTER ADMIN */}
+            {currentUserEmail === 'connectyhub@gmail.com' && (
+                <div className="max-w-7xl mx-auto mb-12 space-y-6">
+                    {/* Add New Admin Form */}
+                    <div className="glass-card p-6 rounded-xl border border-gold/30">
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-3">
+                                <UserCheck className="text-gold" />
+                                <h2 className="text-xl font-serif gold-text uppercase tracking-widest">Administradores do Sistema</h2>
+                            </div>
+                            <button
+                                onClick={() => setShowAdminForm(!showAdminForm)}
+                                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded transition-colors border border-white/10"
+                            >
+                                <UserPlus size={16} />
+                                {showAdminForm ? 'Cancelar' : 'Adicionar Administrador'}
+                            </button>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="text-xs uppercase tracking-widest text-gray-400 border-b border-white/5">
-                                    <tr>
-                                        <th className="pb-4">Email</th>
-                                        <th className="pb-4">Data Solicitação</th>
-                                        <th className="pb-4 text-right">Ação</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/5">
-                                    {pendingUsers.map(user => (
-                                        <tr key={user.id}>
-                                            <td className="py-4 font-medium">{user.email}</td>
-                                            <td className="py-4 text-gray-400 text-sm">
-                                                {new Date(user.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="py-4 text-right">
-                                                <button
-                                                    onClick={() => handleApproveUser(user.id)}
-                                                    className="flex items-center gap-2 ml-auto bg-green-500/20 text-green-400 hover:bg-green-500/30 px-4 py-2 rounded text-xs uppercase tracking-widest font-bold transition-colors"
-                                                >
-                                                    <UserCheck size={14} /> Aprovar
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+
+                        {showAdminForm && (
+                            <form onSubmit={handleCreateAdmin} className="bg-black/20 p-6 rounded-xl border border-white/10 mb-6 flex flex-col md:flex-row gap-4 items-end animate-in fade-in zoom-in duration-200">
+                                <div className="w-full md:w-1/3">
+                                    <label className="block text-xs uppercase tracking-widest text-gold mb-2">Email</label>
+                                    <input
+                                        type="email"
+                                        value={newAdminEmail}
+                                        onChange={(e) => setNewAdminEmail(e.target.value)}
+                                        className="w-full p-3 rounded bg-white/5 border border-gold/20 text-white focus:border-gold outline-none"
+                                        required
+                                    />
+                                </div>
+                                <div className="w-full md:w-1/3">
+                                    <label className="block text-xs uppercase tracking-widest text-gold mb-2">Senha</label>
+                                    <input
+                                        type="password"
+                                        value={newAdminPassword}
+                                        onChange={(e) => setNewAdminPassword(e.target.value)}
+                                        className="w-full p-3 rounded bg-white/5 border border-gold/20 text-white focus:border-gold outline-none"
+                                        required
+                                        minLength={6}
+                                    />
+                                </div>
+                                <div className="w-full md:w-1/3">
+                                    <button
+                                        type="submit"
+                                        disabled={creatingAdmin}
+                                        className="w-full btn-gold py-3 rounded font-bold uppercase tracking-widest transition-transform disabled:opacity-50"
+                                    >
+                                        {creatingAdmin ? 'Criando...' : 'Salvar Administrador'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Approved Admins */}
+                            <div>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 pb-2 border-b border-white/10">Admins Ativos</h3>
+                                <div className="space-y-3">
+                                    {approvedAdmins.length === 0 ? (
+                                        <p className="text-sm text-gray-500">Nenhum administrador encontrado.</p>
+                                    ) : (
+                                        approvedAdmins.map(admin => (
+                                            <div key={admin.id} className="flex justify-between items-center bg-white/5 p-3 rounded border border-white/5 hover:border-white/10 transition-colors">
+                                                <div>
+                                                    <p className="font-medium text-sm">{admin.email}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">
+                                                        Membro desde {new Date(admin.created_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                {admin.email !== 'connectyhub@gmail.com' && (
+                                                    <button
+                                                        onClick={() => handleDeleteAdmin(admin.id, admin.email)}
+                                                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2 rounded transition-colors"
+                                                        title="Remover acesso"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                                {admin.email === 'connectyhub@gmail.com' && (
+                                                    <span className="text-[10px] font-bold text-gold bg-gold/10 px-2 py-1 rounded">MASTER</span>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Pending Approvals */}
+                            {pendingUsers.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-bold uppercase tracking-widest text-yellow-500 mb-4 pb-2 border-b border-yellow-500/20 flex items-center gap-2">
+                                        <ShieldAlert size={16} /> Aprovações Pendentes
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {pendingUsers.map(user => (
+                                            <div key={user.id} className="flex flex-col sm:flex-row justify-between sm:items-center bg-yellow-500/5 p-3 rounded border border-yellow-500/20 gap-3">
+                                                <div>
+                                                    <p className="font-medium text-sm text-yellow-100">{user.email}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">
+                                                        Solicitado em {new Date(user.created_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleApproveUser(user.id)}
+                                                        className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 px-3 py-1.5 rounded text-[10px] uppercase tracking-widest font-bold transition-colors border border-green-500/30"
+                                                    >
+                                                        <UserCheck size={12} /> Aprovar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteAdmin(user.id, user.email)}
+                                                        className="flex items-center justify-center p-1.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors border border-red-500/20"
+                                                        title="Rejeitar / Excluir"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
