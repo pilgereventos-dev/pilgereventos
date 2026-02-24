@@ -6,7 +6,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         return response.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { phone, name, guests_count } = request.body;
+    const { phone, name, guests_count, is_recurring } = request.body;
 
     if (!phone || !name) {
         return response.status(400).json({ error: 'Missing phone or name' });
@@ -34,7 +34,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
             'connectyhub_api_url',
             'connectyhub_api_key',
             'connectyhub_instance',
-            'welcome_message_template'
+            'welcome_message_template',
+            'recurring_welcome_message_template'
         ]);
 
     if (configError || !configData) {
@@ -50,20 +51,40 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const apiKey = config.connectyhub_api_key;
     const apiUrl = config.connectyhub_api_url;
     const instanceName = config.connectyhub_instance;
-    // Default template fallback if DB is empty
-    const template = config.welcome_message_template || `Olá *{name}*! 👋
 
-Sua presença no *Folia do Pilger* foi confirmada com sucesso! 🎭✨
+    // Use specific template if recurring, else use default. Fall back to code default if db value is missing.
+    const defaultTemplateString = `Olá *{name}*! 👋
 
-🗓 *Data:* 16 de Fevereiro
+Sua presença no *Cenário Econômico* com Joaquim Levy foi confirmada com sucesso! 🎭✨
+
+🗓 *Data:* 27 de Fevereiro
 📍 *Local:* Av. Carlos Drummond de Andrade, Praia Brava
-⏰ *Horário:* 16h
+⏰ *Horário:* 10h
 
 {guest_summary}
 
 Estamos ansiosos para te receber neste evento exclusivo!
 
 _Este é um convite digital e pessoal._`;
+
+    let template = defaultTemplateString;
+
+    if (is_recurring) {
+        template = config.recurring_welcome_message_template ||
+            `Olá *{name}*! Que prazer recebê-lo de volta! 🙌
+
+Ficamos muito felizes em ver você novamente, agora em nosso evento especial *Cenário Econômico* com Joaquim Levy!
+
+🗓 *Data:* 27 de Fevereiro
+📍 *Local:* Av. Carlos Drummond de Andrade, 33, Praia Brava
+⏰ *Horário:* 10h
+
+{guest_summary}
+
+Até breve!`;
+    } else {
+        template = config.welcome_message_template || defaultTemplateString;
+    }
 
     if (!apiKey || !apiUrl || !instanceName) {
         console.error('Missing ConnectyHub API credentials in DB');

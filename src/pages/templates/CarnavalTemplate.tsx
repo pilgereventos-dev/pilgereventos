@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { supabase } from '../lib/supabase';
-import { MapPin, Calendar, Check } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { MapPin, Calendar, Clock, Music, Check } from 'lucide-react';
 
 export default function Home() {
     const [loading, setLoading] = useState(false);
@@ -48,24 +48,9 @@ export default function Home() {
         };
 
         try {
-            // Check if user is recurring
-            const { data: existingGuests } = await supabase
-                .from('guests')
-                .select('id')
-                .eq('phone', data.phone)
-                .limit(1);
-
-            const isRecurring = existingGuests && existingGuests.length > 0;
-
-            const insertPayload = {
-                ...data,
-                event_name: 'cenario_economico',
-                is_recurring: isRecurring
-            };
-
             const { error: insertError } = await supabase
                 .from('guests')
-                .insert([insertPayload]);
+                .insert([data]);
 
             if (insertError) throw insertError;
 
@@ -76,8 +61,7 @@ export default function Home() {
                 body: JSON.stringify({
                     name: data.name,
                     phone: data.phone,
-                    guests_count: data.guests_count,
-                    is_recurring: isRecurring
+                    guests_count: data.guests_count
                 }),
             });
 
@@ -142,13 +126,19 @@ export default function Home() {
 
             {/* Header / Hero */}
             <header className="w-full max-w-5xl px-6 pt-20 pb-16 text-center relative z-10">
+                <div className="flex justify-center mb-8">
+                    <div className="relative">
+                        <svg width="80" height="40" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-90">
+                            <path d="M10 25C10 10 30 5 50 25C70 5 90 10 90 25C90 45 70 45 50 35C30 45 10 45 10 25Z" stroke="#D4AF37" strokeWidth="1.5" />
+                            <path d="M45 5C45 5 48 15 50 15C52 15 55 5 55 5" stroke="#D4AF37" strokeWidth="1" />
+                        </svg>
+                    </div>
+                </div>
 
                 <h1 className="text-5xl md:text-8xl font-bold mb-6 gold-text tracking-tighter uppercase font-serif">GUILHERME PILGER</h1>
-                <p className="text-xl md:text-4xl font-bold text-[#D4AF37] mb-2 uppercase tracking-wide">
-                    Cenário Econômico
-                </p>
-                <p className="text-lg md:text-2xl font-light text-gray-300 italic mb-8">
-                    Palestra com <strong className="text-white font-semibold">Joaquim Levy</strong>
+                <p className="text-lg md:text-2xl font-light text-gray-400 italic mb-8">
+                    Vem curtir o melhor carnaval de <br />
+                    frente pro mar!
                 </p>
                 <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mx-auto"></div>
             </header>
@@ -158,21 +148,14 @@ export default function Home() {
 
                 {/* Section 1: Descrição */}
                 <div className="lg:col-span-7 order-1 space-y-4">
+                    <h2 className="text-xl md:text-3xl lg:text-4xl font-serif gold-text">O Litoral é o Nosso Palco</h2>
                     <div className="space-y-6">
-                        <p className="text-gray-300 leading-relaxed text-sm md:text-base border-l-2 border-[#D4AF37] pl-4">
-                            O <strong className="text-white font-semibold">Banco Safra</strong>, em parceria com <strong className="text-white font-semibold">Guilherme Pilger</strong>, convida você para uma conversa com <strong className="text-white font-semibold">Joaquim Levy</strong>, Diretor de Estratégia Econômica e Relações com Mercados do Safra.
+                        <p className="text-gray-300 leading-relaxed text-sm md:text-base">
+                            Venha curtir com a gente um <strong className="text-white font-semibold">sunset inesquecível.</strong><br />
+                            <strong className="text-white font-semibold">Drinks, chope, sertanejo, Dj.</strong><br />
+                            Uma experiência sensorial completa no endereço mais <strong className="text-white font-semibold">exclusivo da Brava em parceria com a Vokkan | Urbanismo</strong>
                         </p>
-                    </div>
-
-                    <div className="mt-8 flex flex-col md:flex-row gap-6 items-start glass-card p-6 rounded-2xl relative overflow-hidden border-[#D4AF37]/30">
-                        <img src="/image/joaquim-levy.webp" alt="Joaquim Levy" className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.2)] shrink-0" />
-                        <div>
-                            <h3 className="text-xs font-serif text-[#D4AF37] uppercase tracking-widest mb-1">Sobre o Palestrante</h3>
-                            <h4 className="text-xl font-bold text-white mb-2">Joaquim Levy</h4>
-                            <p className="text-xs text-gray-300 leading-relaxed text-justify">
-                                Foi Ministro da Fazenda e ocupou cargos estratégicos no Brasil e no exterior, como Secretário do Tesouro Nacional, Vice-Presidente do Banco Interamericano de Desenvolvimento, Diretor-Geral do Banco Mundial e Presidente do BNDES. É doutor em Economia pela Universidade de Chicago, mestre em Economia pela FGV e graduado em Engenharia Naval pela UFRJ.
-                            </p>
-                        </div>
+                        <img src="/image/vokkan.jpg" alt="Vokkan Urbanismo" className="h-6 opacity-60 rounded-full mix-blend-screen" />
                     </div>
                 </div>
 
@@ -319,17 +302,31 @@ export default function Home() {
                 {/* Section 3: Cartões de Informação */}
                 <div className="lg:col-span-7 order-3 lg:order-none grid md:grid-cols-2 gap-6">
                     <div className="glass-card p-6 rounded-xl flex gap-4 items-center">
-                        <Calendar className="w-8 h-8 text-[#D4AF37] opacity-70 shrink-0" />
+                        <MapPin className="w-8 h-8 text-[#D4AF37] opacity-70" />
                         <div>
-                            <h4 className="text-xs uppercase tracking-widest text-[#D4AF37]">Data</h4>
-                            <p className="text-white font-medium">27 de fevereiro - 10h<br /><span className="text-xs text-gray-400 font-normal">(sexta-feira)</span></p>
+                            <h4 className="text-xs uppercase tracking-widest text-[#D4AF37]">Localização</h4>
+                            <p className="text-white font-medium text-sm">Av. Carlos Drummond de Andrade, 33, Praia Brava - Itajaí/SC</p>
                         </div>
                     </div>
                     <div className="glass-card p-6 rounded-xl flex gap-4 items-center">
-                        <MapPin className="w-8 h-8 text-[#D4AF37] opacity-70 shrink-0" />
+                        <Calendar className="w-8 h-8 text-[#D4AF37] opacity-70" />
                         <div>
-                            <h4 className="text-xs uppercase tracking-widest text-[#D4AF37]">Localização</h4>
-                            <p className="text-white font-medium text-sm">Avenida Carlos Drummond de Andrade, 33<br />Praia Brava<br />Balneário Camboriú</p>
+                            <h4 className="text-xs uppercase tracking-widest text-[#D4AF37]">Data</h4>
+                            <p className="text-white font-medium">Dia 16 • Segunda-feira</p>
+                        </div>
+                    </div>
+                    <div className="glass-card p-6 rounded-xl flex gap-4 items-center">
+                        <Clock className="w-8 h-8 text-[#D4AF37] opacity-70" />
+                        <div>
+                            <h4 className="text-xs uppercase tracking-widest text-[#D4AF37]">Programação</h4>
+                            <p className="text-white font-medium text-xs">16h: Sertanejo | 19h: DJ & Sax</p>
+                        </div>
+                    </div>
+                    <div className="glass-card p-6 rounded-xl flex gap-4 items-center">
+                        <Music className="w-8 h-8 text-[#D4AF37] opacity-70" />
+                        <div>
+                            <h4 className="text-xs uppercase tracking-widest text-[#D4AF37]">Vibe</h4>
+                            <p className="text-white font-medium">Luxury Beach Carnival</p>
                         </div>
                     </div>
                 </div>

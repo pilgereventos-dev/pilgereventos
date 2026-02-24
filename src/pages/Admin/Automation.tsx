@@ -18,6 +18,7 @@ export default function Automation() {
     const navigate = useNavigate();
     const [rules, setRules] = useState<AutomationRule[]>([]);
     const [welcomeMessage, setWelcomeMessage] = useState('');
+    const [recurringWelcomeMessage, setRecurringWelcomeMessage] = useState('');
     //    const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -87,12 +88,15 @@ export default function Automation() {
 
         const { data: configData } = await supabase
             .from('app_config')
-            .select('value')
-            .eq('key', 'welcome_message_template')
-            .single();
+            .select('key, value')
+            .in('key', ['welcome_message_template', 'recurring_welcome_message_template']);
 
         if (configData) {
-            setWelcomeMessage(configData.value);
+            const wm = configData.find(c => c.key === 'welcome_message_template')?.value;
+            if (wm) setWelcomeMessage(wm);
+
+            const rwm = configData.find(c => c.key === 'recurring_welcome_message_template')?.value;
+            if (rwm) setRecurringWelcomeMessage(rwm);
         }
 
         if (error) {
@@ -125,15 +129,20 @@ export default function Automation() {
         if (!formData.message_template) return;
 
         // Special handling for Welcome Message
-        if (editingId === 'welcome_message') {
+        if (editingId === 'welcome_message' || editingId === 'recurring_welcome_message') {
+            const isRecurring = editingId === 'recurring_welcome_message';
+            const keyToSave = isRecurring ? 'recurring_welcome_message_template' : 'welcome_message_template';
+            const descToSave = isRecurring ? 'Mensagem de Boas-vindas (Convidado Recorrente)' : 'Mensagem de Boas-vindas (WhatsApp)';
+
             const { error } = await supabase
                 .from('app_config')
-                .upsert({ key: 'welcome_message_template', value: formData.message_template, description: 'Mensagem de Boas-vindas (WhatsApp)' });
+                .upsert({ key: keyToSave, value: formData.message_template, description: descToSave });
 
             if (error) {
-                alert('Erro ao salvar mensagem de boas-vindas: ' + error.message);
+                alert('Erro ao salvar mensagem: ' + error.message);
             } else {
-                setWelcomeMessage(formData.message_template);
+                if (isRecurring) setRecurringWelcomeMessage(formData.message_template);
+                else setWelcomeMessage(formData.message_template);
                 setShowModal(false);
             }
             return;
@@ -251,7 +260,7 @@ export default function Automation() {
                             onClick={() => {
                                 setEditingId('welcome_message');
                                 setFormData({
-                                    name: 'Mensagem de Boas-Vindas',
+                                    name: 'Mensagem de Boas-Vindas Padrão',
                                     type: 'signup_relative',
                                     trigger_value: '0',
                                     active: true,
@@ -261,7 +270,27 @@ export default function Automation() {
                             }}
                         >
                             <span className="block text-xs text-gray-400 uppercase">Gatilho (Start)</span>
-                            <span className="font-bold text-gold">Cadastro</span>
+                            <span className="font-bold text-gold">Cadastro <br /><span className="text-[10px] text-gray-400 font-normal">(Primeira Vez)</span></span>
+                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Edit2 size={10} className="text-gold" />
+                            </div>
+                        </div>
+
+                        <div className="bg-white/5 p-3 rounded-lg border border-[#D4AF37]/30 text-center relative group cursor-pointer hover:border-gold transition-colors"
+                            onClick={() => {
+                                setEditingId('recurring_welcome_message');
+                                setFormData({
+                                    name: 'Mensagem Convidado Recorrente',
+                                    type: 'signup_relative',
+                                    trigger_value: '0',
+                                    active: true,
+                                    message_template: recurringWelcomeMessage || ''
+                                });
+                                setShowModal(true);
+                            }}
+                        >
+                            <span className="block text-xs text-[#D4AF37] uppercase">Gatilho (Start)</span>
+                            <span className="font-bold text-gold">Cadastro <br /><span className="text-[10px] text-[#D4AF37] font-normal">(Recorrente)</span></span>
                             <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Edit2 size={10} className="text-gold" />
                             </div>
