@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LogOut, Users, CheckCircle, Search, RefreshCw, Send, UserCheck, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,8 @@ interface Guest {
     status: string;
     created_at: string;
     whatsapp_sent: boolean;
+    event_name?: string;
+    is_recurring?: boolean;
     companion1_name?: string;
     companion1_phone?: string;
     companion2_name?: string;
@@ -30,6 +32,7 @@ export default function Dashboard() {
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedEvent, setSelectedEvent] = useState('all');
     const navigate = useNavigate();
 
     const fetchData = async () => {
@@ -143,7 +146,25 @@ export default function Dashboard() {
         }
     };
 
-    const filteredGuests = guests.filter(guest =>
+    const guestHistory = useMemo(() => {
+        const history: Record<string, string[]> = {};
+        guests.forEach(g => {
+            if (!history[g.phone]) history[g.phone] = [];
+            const ename = g.event_name || 'carnaval';
+            if (!history[g.phone].includes(ename)) {
+                history[g.phone].push(ename);
+            }
+        });
+        return history;
+    }, [guests]);
+
+    const filteredByEvent = guests.filter(g =>
+        selectedEvent === 'all' ||
+        (selectedEvent === 'carnaval' && (!g.event_name || g.event_name === 'carnaval')) ||
+        (selectedEvent === 'cenario_economico' && g.event_name === 'cenario_economico')
+    );
+
+    const filteredGuests = filteredByEvent.filter(guest =>
         guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guest.phone.includes(searchTerm) ||
         (guest.companion1_name && guest.companion1_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -155,10 +176,11 @@ export default function Dashboard() {
     const pendingUsers = profiles.filter(p => !p.approved);
 
     // To count total people confirmed, we need to sum guests_count too for confirmed/checked_in
-    const totalPeopleConfirmed = guests
+    const totalPeopleConfirmed = filteredByEvent
         .filter(g => g.status === 'confirmed' || g.status === 'checked_in')
         .reduce((acc, guest) => acc + 1 + (guest.guests_count || 0), 0);
-    const checkedInGuests = guests.filter(g => g.status === 'checked_in').reduce((acc, guest) => acc + 1 + (guest.guests_count || 0), 0);
+    const checkedInGuests = filteredByEvent.filter(g => g.status === 'checked_in').reduce((acc, guest) => acc + 1 + (guest.guests_count || 0), 0);
+    const totalCompanions = filteredByEvent.reduce((acc, g) => acc + (g.guests_count || 0), 0);
 
 
     return (
@@ -166,7 +188,7 @@ export default function Dashboard() {
             <header className="flex justify-between items-center mb-12 max-w-7xl mx-auto">
                 <div>
                     <h1 className="text-2xl md:text-4xl font-serif gold-text uppercase tracking-widest">Painel Administrativo</h1>
-                    <p className="text-gray-400 text-xs uppercase tracking-widest mt-2">{guests.length} Registros Totais</p>
+                    <p className="text-gray-400 text-xs uppercase tracking-widest mt-2">{filteredByEvent.length} Registros ({selectedEvent === 'all' ? 'Todos os Eventos' : selectedEvent === 'carnaval' ? 'Carnaval' : 'Cenário Econômico'})</p>
                 </div>
                 <div className="flex gap-4">
                     <button onClick={() => navigate('/admin/automation')} className="flex items-center gap-2 text-gold hover:text-yellow-200 transition-colors uppercase text-xs tracking-widest px-4 py-2 bg-white/5 rounded hover:bg-white/10">
@@ -246,7 +268,7 @@ export default function Dashboard() {
                         <div>
                             <p className="text-xs uppercase tracking-widest text-gray-400">Acompanhantes</p>
                             <h3 className="text-3xl font-bold mt-2 text-blue-400">
-                                {guests.reduce((acc, g) => acc + (g.guests_count || 0), 0)}
+                                {totalCompanions}
                             </h3>
                         </div>
                         <Users className="text-blue-500 opacity-50" />
@@ -255,6 +277,29 @@ export default function Dashboard() {
             </div>
 
             <div className="max-w-7xl mx-auto glass-card rounded-xl overflow-hidden">
+
+                {/* FILTROS DE EVENTO */}
+                <div className="bg-black/20 p-4 border-b border-white/5 flex flex-wrap gap-2">
+                    <button
+                        onClick={() => setSelectedEvent('all')}
+                        className={`px-4 py-2 rounded-lg text-xs uppercase tracking-widest font-bold transition-all border ${selectedEvent === 'all' ? 'bg-gold text-black border-gold' : 'bg-transparent text-gray-400 border-white/10 hover:border-gold/50'}`}
+                    >
+                        Todos os Eventos
+                    </button>
+                    <button
+                        onClick={() => setSelectedEvent('cenario_economico')}
+                        className={`px-4 py-2 rounded-lg text-xs uppercase tracking-widest font-bold transition-all border ${selectedEvent === 'cenario_economico' ? 'bg-blue-500 text-white border-blue-500' : 'bg-transparent text-gray-400 border-white/10 hover:border-blue-500/50'}`}
+                    >
+                        📈 Cenário Econômico
+                    </button>
+                    <button
+                        onClick={() => setSelectedEvent('carnaval')}
+                        className={`px-4 py-2 rounded-lg text-xs uppercase tracking-widest font-bold transition-all border ${selectedEvent === 'carnaval' ? 'bg-purple-500 text-white border-purple-500' : 'bg-transparent text-gray-400 border-white/10 hover:border-purple-500/50'}`}
+                    >
+                        🎭 Carnaval
+                    </button>
+                </div>
+
                 <div className="p-6 border-b border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="relative w-full md:w-96">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
@@ -291,6 +336,18 @@ export default function Dashboard() {
                                         }`}>
                                         {guest.status === 'checked_in' ? 'Check-in' : 'Confirmado'}
                                     </span>
+                                </div>
+
+                                <div className="flex gap-2 flex-wrap mb-4">
+                                    {(guestHistory[guest.phone] || []).includes('carnaval') && (
+                                        <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">🎭 Carnaval</span>
+                                    )}
+                                    {(guestHistory[guest.phone] || []).includes('cenario_economico') && (
+                                        <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">📈 Cenário E.</span>
+                                    )}
+                                    {(guestHistory[guest.phone] || []).length > 1 && (
+                                        <span className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 text-yellow-500 border border-yellow-500/50 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">⭐ Recorrente</span>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -363,6 +420,7 @@ export default function Dashboard() {
                             <tr>
                                 <th className="p-6">Nome</th>
                                 <th className="p-6">WhatsApp</th>
+                                <th className="p-6">Evento / Tags</th>
                                 <th className="p-6 text-center">Convidados</th>
                                 <th className="p-6 text-center">Status</th>
                                 <th className="p-6 text-center">Ações</th>
@@ -381,6 +439,19 @@ export default function Dashboard() {
                                             <div className="text-xs text-gray-500 mt-1">Check-in: {new Date(guest.created_at).toLocaleDateString()}</div>
                                         </td>
                                         <td className="p-6 text-gray-400 text-sm">{guest.phone}</td>
+                                        <td className="p-6">
+                                            <div className="flex flex-col gap-1 w-fit">
+                                                {(guestHistory[guest.phone] || []).includes('carnaval') && (
+                                                    <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-center">🎭 Carnaval</span>
+                                                )}
+                                                {(guestHistory[guest.phone] || []).includes('cenario_economico') && (
+                                                    <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-center">📈 Cenário</span>
+                                                )}
+                                                {(guestHistory[guest.phone] || []).length > 1 && (
+                                                    <span className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 text-yellow-500 border border-yellow-500/50 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-center">⭐ Recorrente</span>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="p-6 text-center">
                                             <span className="px-3 py-1 bg-white/10 rounded-full text-xs font-bold block w-fit mx-auto mb-2">
                                                 +{guest.guests_count}
