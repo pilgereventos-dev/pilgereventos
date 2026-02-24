@@ -163,7 +163,7 @@ export default function Home() {
             <div className="wave-decoration"></div>
 
             {/* Header / Hero */}
-            <header className="w-full max-w-5xl px-6 pt-20 pb-16 text-center relative z-10">
+            <header className="w-full max-w-5xl px-6 pt-20 pb-12 md:pb-16 text-center relative z-10">
 
                 <h1 className="text-5xl md:text-8xl font-bold mb-6 gold-text tracking-tighter uppercase font-serif">GUILHERME PILGER</h1>
                 <p className="text-xl md:text-4xl font-bold text-[#D4AF37] mb-2 uppercase tracking-wide">
@@ -173,6 +173,16 @@ export default function Home() {
                     Palestra com <strong className="text-white font-semibold">Joaquim Levy</strong>
                 </p>
                 <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mx-auto"></div>
+
+                {/* Mobile CTA Button - Only visible on small screens and when form is not submitted */}
+                {!success && (
+                    <button
+                        onClick={() => document.getElementById('rsvp-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="lg:hidden mt-8 btn-gold px-8 py-3 rounded-full font-bold uppercase tracking-widest text-xs shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-pulse border border-[#D4AF37]/50"
+                    >
+                        Garantir Minha Vaga
+                    </button>
+                )}
             </header>
 
             {/* Main Content */}
@@ -199,7 +209,7 @@ export default function Home() {
                 </div>
 
                 {/* Section 2: Formulário */}
-                <div className="lg:col-span-5 lg:row-span-2 order-2 lg:order-none">
+                <div id="rsvp-section" className="lg:col-span-5 lg:row-span-2 order-2 lg:order-none scroll-mt-24">
                     <div className="glass-card p-8 md:p-12 rounded-2xl relative overflow-hidden border-[#D4AF37]/30">
                         {!success ? (
                             <div id="rsvp-content" className={`transition-opacity duration-500 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
