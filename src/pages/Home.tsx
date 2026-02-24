@@ -158,7 +158,7 @@ export default function Home() {
         <div className="min-h-screen flex flex-col items-center relative overflow-hidden text-white font-sans">
             <div className="fixed inset-0 z-[-1]">
                 <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/image/fundo  pilger eventos.png')" }}></div>
-                <div className="absolute inset-0 bg-black/70"></div>
+                <div className="absolute inset-0 bg-black/85"></div>
             </div>
             <div className="wave-decoration"></div>
 
