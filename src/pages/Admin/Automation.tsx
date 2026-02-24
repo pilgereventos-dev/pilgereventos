@@ -19,6 +19,7 @@ export default function Automation() {
     const [rules, setRules] = useState<AutomationRule[]>([]);
     const [welcomeMessage, setWelcomeMessage] = useState('');
     const [recurringWelcomeMessage, setRecurringWelcomeMessage] = useState('');
+    const [duplicateWelcomeMessage, setDuplicateWelcomeMessage] = useState('');
     //    const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -89,7 +90,7 @@ export default function Automation() {
         const { data: configData } = await supabase
             .from('app_config')
             .select('key, value')
-            .in('key', ['welcome_message_template', 'recurring_welcome_message_template']);
+            .in('key', ['welcome_message_template', 'recurring_welcome_message_template', 'duplicate_welcome_message_template']);
 
         if (configData) {
             const wm = configData.find(c => c.key === 'welcome_message_template')?.value;
@@ -97,6 +98,9 @@ export default function Automation() {
 
             const rwm = configData.find(c => c.key === 'recurring_welcome_message_template')?.value;
             if (rwm) setRecurringWelcomeMessage(rwm);
+
+            const dwm = configData.find(c => c.key === 'duplicate_welcome_message_template')?.value;
+            if (dwm) setDuplicateWelcomeMessage(dwm);
         }
 
         if (error) {
@@ -129,10 +133,17 @@ export default function Automation() {
         if (!formData.message_template) return;
 
         // Special handling for Welcome Message
-        if (editingId === 'welcome_message' || editingId === 'recurring_welcome_message') {
-            const isRecurring = editingId === 'recurring_welcome_message';
-            const keyToSave = isRecurring ? 'recurring_welcome_message_template' : 'welcome_message_template';
-            const descToSave = isRecurring ? 'Mensagem de Boas-vindas (Convidado Recorrente)' : 'Mensagem de Boas-vindas (WhatsApp)';
+        if (editingId === 'welcome_message' || editingId === 'recurring_welcome_message' || editingId === 'duplicate_welcome_message') {
+            let keyToSave = 'welcome_message_template';
+            let descToSave = 'Mensagem de Boas-vindas (WhatsApp)';
+
+            if (editingId === 'recurring_welcome_message') {
+                keyToSave = 'recurring_welcome_message_template';
+                descToSave = 'Mensagem de Boas-vindas (Convidado Recorrente)';
+            } else if (editingId === 'duplicate_welcome_message') {
+                keyToSave = 'duplicate_welcome_message_template';
+                descToSave = 'Mensagem de Aviso (Cadastro Duplicado)';
+            }
 
             const { error } = await supabase
                 .from('app_config')
@@ -141,7 +152,8 @@ export default function Automation() {
             if (error) {
                 alert('Erro ao salvar mensagem: ' + error.message);
             } else {
-                if (isRecurring) setRecurringWelcomeMessage(formData.message_template);
+                if (editingId === 'recurring_welcome_message') setRecurringWelcomeMessage(formData.message_template);
+                else if (editingId === 'duplicate_welcome_message') setDuplicateWelcomeMessage(formData.message_template);
                 else setWelcomeMessage(formData.message_template);
                 setShowModal(false);
             }
@@ -256,26 +268,28 @@ export default function Automation() {
                         <Clock size={16} /> Linha do Tempo (Pós-Cadastro)
                     </h3>
                     <div className="flex flex-wrap gap-4 items-center">
-                        <div className="bg-white/5 p-3 rounded-lg border border-white/10 text-center relative group cursor-pointer hover:border-gold/50 transition-colors"
+                        {/* GATILHO: Cadastro Primeira Vez */}
+                        <div className="bg-white/5 p-3 rounded-lg border border-white/10 text-center relative group cursor-pointer hover:border-gold transition-colors"
                             onClick={() => {
                                 setEditingId('welcome_message');
                                 setFormData({
-                                    name: 'Mensagem de Boas-Vindas Padrão',
+                                    name: 'Mensagem de Boas-vindas',
                                     type: 'signup_relative',
                                     trigger_value: '0',
                                     active: true,
-                                    message_template: welcomeMessage
+                                    message_template: welcomeMessage || ''
                                 });
                                 setShowModal(true);
                             }}
                         >
                             <span className="block text-xs text-gray-400 uppercase">Gatilho (Start)</span>
-                            <span className="font-bold text-gold">Cadastro <br /><span className="text-[10px] text-gray-400 font-normal">(Primeira Vez)</span></span>
-                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Edit2 size={10} className="text-gold" />
+                            <span className="font-bold text-white">Cadastro <br /><span className="text-[10px] text-gray-500 font-normal">(1ª Vez)</span></span>
+                            <div className="absolute -top-2 -right-2 bg-gold/20 text-gold rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Edit2 size={12} />
                             </div>
                         </div>
 
+                        {/* GATILHO: Cadastro Recorrente */}
                         <div className="bg-white/5 p-3 rounded-lg border border-[#D4AF37]/30 text-center relative group cursor-pointer hover:border-gold transition-colors"
                             onClick={() => {
                                 setEditingId('recurring_welcome_message');
@@ -291,63 +305,83 @@ export default function Automation() {
                         >
                             <span className="block text-xs text-[#D4AF37] uppercase">Gatilho (Start)</span>
                             <span className="font-bold text-gold">Cadastro <br /><span className="text-[10px] text-[#D4AF37] font-normal">(Recorrente)</span></span>
-                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Edit2 size={10} className="text-gold" />
+                            <div className="absolute -top-2 -right-2 bg-gold/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Edit2 size={12} />
                             </div>
                         </div>
 
-                        {rules.filter(r => r.type === 'signup_relative').map((rule) => (
-                            <div key={rule.id} className="flex items-center gap-2">
-                                <ArrowDown className="-rotate-90 text-gray-600" />
-                                <div className="glass-card p-4 rounded-xl border border-blue-500/30 relative group min-w-[200px]">
-                                    <div className="absolute -top-3 left-4 bg-blue-900 text-blue-300 text-[10px] px-2 py-0.5 rounded border border-blue-500/50 font-bold uppercase tracking-wider">
-                                        +{rule.trigger_value} min
-                                    </div>
-                                    <h4 className="font-bold text-sm mb-1">{rule.name}</h4>
-                                    <p className="text-xs text-gray-400 line-clamp-1">{rule.message_template}</p>
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                        <button onClick={() => handleEdit(rule)} className="p-1 bg-black/50 rounded hover:text-gold"><Edit2 size={12} /></button>
-                                        <button onClick={() => handleDelete(rule.id)} className="p-1 bg-black/50 rounded hover:text-red-400"><Trash2 size={12} /></button>
-                                    </div>
-                                </div>
+                        {/* GATILHO: Cadastro Duplicado */}
+                        <div className="bg-white/5 p-3 rounded-lg border border-red-500/30 text-center relative group cursor-pointer hover:border-red-500 transition-colors"
+                            onClick={() => {
+                                setEditingId('duplicate_welcome_message');
+                                setFormData({
+                                    name: 'Mensagem Cadastro Duplicado',
+                                    type: 'signup_relative', // Changed from 'signup_duplicate' to 'signup_relative' to match existing types
+                                    trigger_value: '0',
+                                    active: true,
+                                    message_template: duplicateWelcomeMessage || ''
+                                });
+                                setShowModal(true);
+                            }}
+                        >
+                            <span className="block text-xs text-red-400 uppercase">Gatilho (Bloqueio)</span>
+                            <span className="font-bold text-red-500">Cadastro <br /><span className="text-[10px] text-red-400 font-normal">(Duplicado / Já Existe)</span></span>
+                            <div className="absolute -top-2 -right-2 bg-red-500/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Edit2 size={12} />
                             </div>
-                        ))}
+                        </div>
                     </div>
-                </div>
-
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {rules.map(rule => (
-                        <div key={rule.id} className="glass-card p-6 rounded-xl border border-white/5 relative group">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
-                                    <Calendar size={20} />
+                    {rules.filter(r => r.type === 'signup_relative').map((rule) => (
+                        <div key={rule.id} className="flex items-center gap-2">
+                            <ArrowDown className="-rotate-90 text-gray-600" />
+                            <div className="glass-card p-4 rounded-xl border border-blue-500/30 relative group min-w-[200px]">
+                                <div className="absolute -top-3 left-4 bg-blue-900 text-blue-300 text-[10px] px-2 py-0.5 rounded border border-blue-500/50 font-bold uppercase tracking-wider">
+                                    +{rule.trigger_value} min
                                 </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => handleEdit(rule)} className="text-gray-500 hover:text-gold transition-colors">
-                                        <Edit2 size={18} />
-                                    </button>
-                                    <button onClick={() => handleDelete(rule.id)} className="text-gray-500 hover:text-red-400 transition-colors">
-                                        <Trash2 size={18} />
-                                    </button>
+                                <h4 className="font-bold text-sm mb-1">{rule.name}</h4>
+                                <p className="text-xs text-gray-400 line-clamp-1">{rule.message_template}</p>
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                    <button onClick={() => handleEdit(rule)} className="p-1 bg-black/50 rounded hover:text-gold"><Edit2 size={12} /></button>
+                                    <button onClick={() => handleDelete(rule.id)} className="p-1 bg-black/50 rounded hover:text-red-400"><Trash2 size={12} /></button>
                                 </div>
-                            </div>
-                            <h3 className="text-lg font-bold mb-1">{rule.name}</h3>
-                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-4">
-                                {rule.type === 'signup_relative'
-                                    ? `Envia ${rule.trigger_value} min após cadastro`
-                                    : new Date(rule.trigger_value).toLocaleString()
-                                }
-                            </p>
-                            <div className="bg-black/30 p-3 rounded text-sm text-gray-300 font-mono line-clamp-3">
-                                {rule.message_template}
-                            </div>
-                            <div className="mt-4 flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${rule.active ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                <span className="text-xs text-gray-400 uppercase">{rule.active ? 'Ativo' : 'Inativo'}</span>
                             </div>
                         </div>
                     ))}
                 </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {rules.map(rule => (
+                    <div key={rule.id} className="glass-card p-6 rounded-xl border border-white/5 relative group">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
+                                <Calendar size={20} />
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => handleEdit(rule)} className="text-gray-500 hover:text-gold transition-colors">
+                                    <Edit2 size={18} />
+                                </button>
+                                <button onClick={() => handleDelete(rule.id)} className="text-gray-500 hover:text-red-400 transition-colors">
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        </div>
+                        <h3 className="text-lg font-bold mb-1">{rule.name}</h3>
+                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-4">
+                            {rule.type === 'signup_relative'
+                                ? `Envia ${rule.trigger_value} min após cadastro`
+                                : new Date(rule.trigger_value).toLocaleString()
+                            }
+                        </p>
+                        <div className="bg-black/30 p-3 rounded text-sm text-gray-300 font-mono line-clamp-3">
+                            {rule.message_template}
+                        </div>
+                        <div className="mt-4 flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${rule.active ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            <span className="text-xs text-gray-400 uppercase">{rule.active ? 'Ativo' : 'Inativo'}</span>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {showModal && (

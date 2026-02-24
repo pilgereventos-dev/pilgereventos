@@ -48,12 +48,34 @@ export default function Home() {
         };
 
         try {
-            // Check if user is recurring
+            // Check if user is recurring AND if they are a duplicate
             const { data: existingGuests } = await supabase
                 .from('guests')
-                .select('id')
-                .eq('phone', data.phone)
-                .limit(1);
+                .select('id, event_name')
+                .eq('phone', data.phone);
+
+            if (existingGuests && existingGuests.length > 0) {
+                // Check if they are already registered for this specific event
+                const isDuplicate = existingGuests.some(g => g.event_name === 'cenario_economico');
+
+                if (isDuplicate) {
+                    // Send Duplicate WhatsApp Warning
+                    await fetch('/api/send-whatsapp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: data.name,
+                            phone: data.phone,
+                            guests_count: data.guests_count,
+                            is_duplicate: true
+                        }),
+                    });
+
+                    setError('Você já está confirmado neste evento! Lhe enviamos uma mensagem no WhatsApp com mais informações.');
+                    setLoading(false);
+                    return; // Stop execution here, don't save to DB
+                }
+            }
 
             const isRecurring = existingGuests && existingGuests.length > 0;
 

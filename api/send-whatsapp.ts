@@ -6,7 +6,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         return response.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { phone, name, guests_count, is_recurring } = request.body;
+    const { phone, name, guests_count, is_recurring, is_duplicate } = request.body;
 
     if (!phone || !name) {
         return response.status(400).json({ error: 'Missing phone or name' });
@@ -35,7 +35,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
             'connectyhub_api_key',
             'connectyhub_instance',
             'welcome_message_template',
-            'recurring_welcome_message_template'
+            'recurring_welcome_message_template',
+            'duplicate_welcome_message_template'
         ]);
 
     if (configError || !configData) {
@@ -69,7 +70,20 @@ _Este é um convite digital e pessoal._`;
 
     let template = defaultTemplateString;
 
-    if (is_recurring) {
+    if (is_duplicate) {
+        template = config.duplicate_welcome_message_template ||
+            `Olá *{name}*! Vimos que você tentou se cadastrar novamente no nosso portal. 😅
+
+Mas fique tranquilo! Sua vaga para o *Cenário Econômico* com Joaquim Levy já está 100% garantida. 
+
+🗓 *Data:* 27 de Fevereiro
+📍 *Local:* Av. Carlos Drummond de Andrade, 33, Praia Brava
+⏰ *Horário:* 10h
+
+{guest_summary}
+
+Se tiver qualquer dúvida, é só nos chamar por aqui!`;
+    } else if (is_recurring) {
         template = config.recurring_welcome_message_template ||
             `Olá *{name}*! Que prazer recebê-lo de volta! 🙌
 
