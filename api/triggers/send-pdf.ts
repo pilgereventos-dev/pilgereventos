@@ -109,6 +109,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     mediatype: mediaTypeParams,
                     fileName: mediaName,
                     caption: messageContent,
+                    text: messageContent,
                     media: mediaUrl
                 }
             };

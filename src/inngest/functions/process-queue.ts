@@ -107,6 +107,7 @@ export const processQueue = inngest.createFunction(
                                 mediatype: mediaType,
                                 fileName: msg.media_name || 'arquivo',
                                 caption: msg.content,
+                                text: msg.content,
                                 media: msg.media_url
                             }
                         };
