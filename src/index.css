@@ -67,3 +67,7 @@ h3,
   animation: waveMove 20s linear infinite;
   pointer-events: none;
 }
+
+.bg-evento-sc {
+  background-image: url('/image/portobelo.png');
+}

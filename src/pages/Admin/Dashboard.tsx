@@ -232,7 +232,8 @@ export default function Dashboard() {
     const filteredByEvent = guests.filter(g =>
         selectedEvent === 'all' ||
         (selectedEvent === 'carnaval' && (!g.event_name || g.event_name === 'carnaval')) ||
-        (selectedEvent === 'cenario_economico' && g.event_name === 'cenario_economico')
+        (selectedEvent === 'cenario_economico' && g.event_name === 'cenario_economico') ||
+        (selectedEvent === 'relatorio-sc' && g.event_name === 'relatorio-sc')
     );
 
     const filteredGuests = filteredByEvent.filter(guest =>
@@ -260,7 +261,7 @@ export default function Dashboard() {
             <header className="flex justify-between items-center mb-12 max-w-7xl mx-auto">
                 <div>
                     <h1 className="text-2xl md:text-4xl font-serif gold-text uppercase tracking-widest">Painel Administrativo</h1>
-                    <p className="text-gray-400 text-xs uppercase tracking-widest mt-2">{filteredByEvent.length} Registros ({selectedEvent === 'all' ? 'Todos os Eventos' : selectedEvent === 'carnaval' ? 'Carnaval' : 'Cenário Econômico'})</p>
+                    <p className="text-gray-400 text-xs uppercase tracking-widest mt-2">{filteredByEvent.length} Registros ({selectedEvent === 'all' ? 'Todos os Eventos' : selectedEvent === 'carnaval' ? 'Carnaval' : selectedEvent === 'cenario_economico' ? 'Cenário Econômico' : 'Relatório SC'})</p>
                 </div>
                 <div className="flex gap-4">
                     <button onClick={() => navigate('/admin/automation')} className="flex items-center gap-2 text-gold hover:text-yellow-200 transition-colors uppercase text-xs tracking-widest px-4 py-2 bg-white/5 rounded hover:bg-white/10">
@@ -457,6 +458,12 @@ export default function Dashboard() {
                     >
                         🎭 Carnaval
                     </button>
+                    <button
+                        onClick={() => setSelectedEvent('relatorio-sc')}
+                        className={`px-4 py-2 rounded-lg text-xs uppercase tracking-widest font-bold transition-all border ${selectedEvent === 'relatorio-sc' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-transparent text-gray-400 border-white/10 hover:border-emerald-500/50'}`}
+                    >
+                        📄 Relatório SC
+                    </button>
                 </div>
 
                 <div className="p-6 border-b border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -503,6 +510,9 @@ export default function Dashboard() {
                                     )}
                                     {(guestHistory[guest.phone] || []).includes('cenario_economico') && (
                                         <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">📈 Cenário E.</span>
+                                    )}
+                                    {(guestHistory[guest.phone] || []).includes('relatorio-sc') && (
+                                        <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">📄 Relatório SC</span>
                                     )}
                                     {(guestHistory[guest.phone] || []).length > 1 && (
                                         <span className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 text-yellow-500 border border-yellow-500/50 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">⭐ Recorrente</span>
@@ -605,6 +615,9 @@ export default function Dashboard() {
                                                 )}
                                                 {(guestHistory[guest.phone] || []).includes('cenario_economico') && (
                                                     <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-center">📈 Cenário</span>
+                                                )}
+                                                {(guestHistory[guest.phone] || []).includes('relatorio-sc') && (
+                                                    <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-center">📄 Relatório SC</span>
                                                 )}
                                                 {(guestHistory[guest.phone] || []).length > 1 && (
                                                     <span className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 text-yellow-500 border border-yellow-500/50 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-center">⭐ Recorrente</span>
