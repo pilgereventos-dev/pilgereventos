@@ -224,7 +224,7 @@ export default function Automation() {
             finalMediaName = selectedFile.name;
         }
 
-        const resetMedia = formData.media_url === ''; // If user cleared media
+        const resetMedia = (formData.media_url === '' || formData.media_url === null) && !selectedFile; // If user cleared media AND no new file
 
         // Special handling for Welcome Message config overrides
         if (editingId === 'welcome_message' || editingId === 'recurring_welcome_message' || editingId === 'duplicate_welcome_message') {
