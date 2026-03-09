@@ -85,16 +85,38 @@ const processQueue = inngest.createFunction(
                 if (!number.startsWith('55')) number = '55' + number;
 
                 try {
-                    const response = await fetch(`${config.apiUrl}/message/sendText/${config.instanceName}`, {
+                    let endpoint = `${config.apiUrl}/message/sendText/${config.instanceName}`;
+                    let reqBody: any = {
+                        number: number,
+                        text: msg.content,
+                    };
+
+                    if (msg.media_url) {
+                        endpoint = `${config.apiUrl}/message/sendMedia/${config.instanceName}`;
+                        let mediaType = 'document';
+                        if (msg.media_type) {
+                            if (msg.media_type.startsWith('image')) mediaType = 'image';
+                            else if (msg.media_type.startsWith('video')) mediaType = 'video';
+                            else if (msg.media_type.startsWith('audio')) mediaType = 'audio';
+                        }
+
+                        reqBody = {
+                            number: number,
+                            mediatype: mediaType,
+                            fileName: msg.media_name || 'arquivo',
+                            caption: msg.content,
+                            text: msg.content,
+                            media: msg.media_url
+                        };
+                    }
+
+                    const response = await fetch(endpoint, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'apikey': config.apiKey,
                         },
-                        body: JSON.stringify({
-                            number: number,
-                            text: msg.content,
-                        }),
+                        body: JSON.stringify(reqBody),
                     });
 
                     if (response.ok) {
@@ -103,8 +125,8 @@ const processQueue = inngest.createFunction(
                     } else {
                         const errText = await response.text();
                         console.error(`Failed to send ${msg.id} (HTTP ${response.status}): ${errText}`);
-                        console.error(`Request URL: ${config.apiUrl}/message/sendText/${config.instanceName}`);
-                        console.error(`Request body: number=${number}, text length=${msg.content?.length}`);
+                        console.error(`Request URL: ${endpoint}`);
+                        console.error(`Request body: number=${number}, hasMedia=${!!msg.media_url}`);
                         await supabase.from('message_queue').update({ status: 'failed', sent_at: new Date().toISOString() }).eq('id', msg.id);
                         results.push({ id: msg.id, status: 'failed', error: errText, httpStatus: response.status });
                     }

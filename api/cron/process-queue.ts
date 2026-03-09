@@ -80,22 +80,38 @@ export default async function handler(request: VercelRequest, response: VercelRe
             }
 
             try {
-                const apiResponse = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
+                let endpoint = `${apiUrl}/message/sendText/${instanceName}`;
+                let reqBody: any = {
+                    number: number,
+                    text: msg.content
+                };
+
+                if (msg.media_url) {
+                    endpoint = `${apiUrl}/message/sendMedia/${instanceName}`;
+                    let mediaType = 'document';
+                    if (msg.media_type) {
+                        if (msg.media_type.startsWith('image')) mediaType = 'image';
+                        else if (msg.media_type.startsWith('video')) mediaType = 'video';
+                        else if (msg.media_type.startsWith('audio')) mediaType = 'audio';
+                    }
+
+                    reqBody = {
+                        number: number,
+                        mediatype: mediaType,
+                        fileName: msg.media_name || 'arquivo',
+                        caption: msg.content,
+                        text: msg.content,
+                        media: msg.media_url
+                    };
+                }
+
+                const apiResponse = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'apikey': apiKey,
                     },
-                    body: JSON.stringify({
-                        number: number,
-                        options: {
-                            delay: 1200,
-                            presence: "composing",
-                        },
-                        textMessage: {
-                            text: msg.content,
-                        },
-                    }),
+                    body: JSON.stringify(reqBody),
                 });
 
                 if (apiResponse.ok) {

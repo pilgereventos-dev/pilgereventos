@@ -54,7 +54,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
             rule_id: rule.id,
             content: rule.message_template.replace(/{name}/g, guest.name),
             scheduled_for: scheduledTime.toISOString(),
-            status: 'pending'
+            status: 'pending',
+            media_url: rule.media_url || null,
+            media_type: rule.media_type || null,
+            media_name: rule.media_name || null
         }));
 
         const { error: insertError } = await supabase
