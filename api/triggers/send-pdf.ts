@@ -104,14 +104,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
             endpoint = `${apiUrl}/message/sendMedia/${instanceName}`;
             requestBody = {
                 number: number,
-                options: { delay: 1200, presence: "composing" },
-                mediaMessage: {
-                    mediatype: mediaTypeParams,
-                    fileName: mediaName,
-                    caption: messageContent,
-                    text: messageContent,
-                    media: mediaUrl
-                }
+                mediatype: mediaTypeParams,
+                fileName: mediaName,
+                caption: messageContent,
+                text: messageContent,
+                media: mediaUrl
             };
         }
 

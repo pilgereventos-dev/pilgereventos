@@ -102,14 +102,11 @@ export const processQueue = inngest.createFunction(
 
                         reqBody = {
                             number: number,
-                            options: { delay: 1200, presence: "composing" },
-                            mediaMessage: {
-                                mediatype: mediaType,
-                                fileName: msg.media_name || 'arquivo',
-                                caption: msg.content,
-                                text: msg.content,
-                                media: msg.media_url
-                            }
+                            mediatype: mediaType,
+                            fileName: msg.media_name || 'arquivo',
+                            caption: msg.content,
+                            text: msg.content,
+                            media: msg.media_url
                         };
                     }
 
