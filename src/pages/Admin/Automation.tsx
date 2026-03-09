@@ -1,8 +1,7 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Trash2, Plus, Clock, Calendar, Play, Edit2, ArrowDown, ArrowLeft } from 'lucide-react';
+import { Trash2, Plus, Clock, Calendar, Play, Edit2, ArrowDown, ArrowLeft, Paperclip, X } from 'lucide-react';
 import DateTimePicker from '../../components/DateTimePicker';
 
 interface AutomationRule {
@@ -12,18 +11,41 @@ interface AutomationRule {
     trigger_value: string; // "60" (minutes) or "2023-10-27T10:00"
     message_template: string;
     active: boolean;
+    media_url?: string;
+    media_type?: string;
+    media_name?: string;
+}
+
+interface MediaFile {
+    url: string;
+    type: string;
+    name: string;
 }
 
 export default function Automation() {
     const navigate = useNavigate();
     const [rules, setRules] = useState<AutomationRule[]>([]);
+
+    // Welcome Messages State
     const [welcomeMessage, setWelcomeMessage] = useState('');
     const [recurringWelcomeMessage, setRecurringWelcomeMessage] = useState('');
     const [duplicateWelcomeMessage, setDuplicateWelcomeMessage] = useState('');
-    //    const [loading, setLoading] = useState(true);
+
+    // Welcome Media State
+    const [welcomeMedia, setWelcomeMedia] = useState<MediaFile | null>(null);
+    const [recurringWelcomeMedia, setRecurringWelcomeMedia] = useState<MediaFile | null>(null);
+    const [duplicateWelcomeMedia, setDuplicateWelcomeMedia] = useState<MediaFile | null>(null);
+
+    // Modal States
     const [showModal, setShowModal] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    // File Upload States
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const [formData, setFormData] = useState<Partial<AutomationRule>>({
         type: 'signup_relative',
         active: true,
@@ -82,7 +104,6 @@ export default function Automation() {
     };
 
     const fetchRules = async () => {
-        // setLoading(true);
         const { data, error } = await supabase
             .from('automation_rules')
             .select('*');
@@ -90,17 +111,42 @@ export default function Automation() {
         const { data: configData } = await supabase
             .from('app_config')
             .select('key, value')
-            .in('key', ['welcome_message_template', 'recurring_welcome_message_template', 'duplicate_welcome_message_template']);
+            .in('key', [
+                'welcome_message_template', 'welcome_message_media_url', 'welcome_message_media_type', 'welcome_message_media_name',
+                'recurring_welcome_message_template', 'recurring_welcome_message_media_url', 'recurring_welcome_message_media_type', 'recurring_welcome_message_media_name',
+                'duplicate_welcome_message_template', 'duplicate_welcome_message_media_url', 'duplicate_welcome_message_media_type', 'duplicate_welcome_message_media_name'
+            ]);
 
         if (configData) {
+            // Main Welcome
             const wm = configData.find(c => c.key === 'welcome_message_template')?.value;
             if (wm) setWelcomeMessage(wm);
+            const wmUrl = configData.find(c => c.key === 'welcome_message_media_url')?.value;
+            if (wmUrl) setWelcomeMedia({
+                url: wmUrl,
+                type: configData.find(c => c.key === 'welcome_message_media_type')?.value || '',
+                name: configData.find(c => c.key === 'welcome_message_media_name')?.value || 'Arquivo Anexado'
+            }); else setWelcomeMedia(null);
 
+            // Recurring Welcome
             const rwm = configData.find(c => c.key === 'recurring_welcome_message_template')?.value;
             if (rwm) setRecurringWelcomeMessage(rwm);
+            const rwmUrl = configData.find(c => c.key === 'recurring_welcome_message_media_url')?.value;
+            if (rwmUrl) setRecurringWelcomeMedia({
+                url: rwmUrl,
+                type: configData.find(c => c.key === 'recurring_welcome_message_media_type')?.value || '',
+                name: configData.find(c => c.key === 'recurring_welcome_message_media_name')?.value || 'Arquivo Anexado'
+            }); else setRecurringWelcomeMedia(null);
 
+            // Duplicate Welcome
             const dwm = configData.find(c => c.key === 'duplicate_welcome_message_template')?.value;
             if (dwm) setDuplicateWelcomeMessage(dwm);
+            const dwmUrl = configData.find(c => c.key === 'duplicate_welcome_message_media_url')?.value;
+            if (dwmUrl) setDuplicateWelcomeMedia({
+                url: dwmUrl,
+                type: configData.find(c => c.key === 'duplicate_welcome_message_media_type')?.value || '',
+                name: configData.find(c => c.key === 'duplicate_welcome_message_media_name')?.value || 'Arquivo Anexado'
+            }); else setDuplicateWelcomeMedia(null);
         }
 
         if (error) {
@@ -114,80 +160,141 @@ export default function Automation() {
             });
             setRules(sorted);
         }
-        // setLoading(false);
     };
 
     const handleEdit = (rule: AutomationRule) => {
         setFormData(rule);
         setEditingId(rule.id);
+        setSelectedFile(null);
         setShowModal(true);
     };
 
     const handleNew = () => {
         setFormData({ type: 'signup_relative', active: true, message_template: 'Olá {name}, faltam apenas...', name: '' });
         setEditingId(null);
+        setSelectedFile(null);
         setShowModal(true);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setSelectedFile(e.target.files[0]);
+            // Clear existing media string from formData so the UI knows we are replacing it
+            setFormData({ ...formData, media_url: '', media_type: '', media_name: '' });
+        }
+    };
+
+    const clearMedia = () => {
+        setSelectedFile(null);
+        setFormData({ ...formData, media_url: '', media_type: '', media_name: '' });
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleSave = async () => {
         if (!formData.message_template) return;
 
-        // Special handling for Welcome Message
+        setIsUploading(true);
+
+        let finalMediaUrl = formData.media_url;
+        let finalMediaType = formData.media_type;
+        let finalMediaName = formData.media_name;
+
+        // Perform File Upload if a new file was selected
+        if (selectedFile) {
+            const fileExt = selectedFile.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `uploads/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('automation_media')
+                .upload(filePath, selectedFile, { upsert: true });
+
+            if (uploadError) {
+                alert('Erro ao fazer upload da mídia: ' + uploadError.message);
+                setIsUploading(false);
+                return;
+            }
+
+            const { data: publicUrlData } = supabase.storage
+                .from('automation_media')
+                .getPublicUrl(filePath);
+
+            finalMediaUrl = publicUrlData.publicUrl;
+            finalMediaType = selectedFile.type || 'application/octet-stream';
+            finalMediaName = selectedFile.name;
+        }
+
+        const resetMedia = formData.media_url === ''; // If user cleared media
+
+        // Special handling for Welcome Message config overrides
         if (editingId === 'welcome_message' || editingId === 'recurring_welcome_message' || editingId === 'duplicate_welcome_message') {
-            let keyToSave = 'welcome_message_template';
+            let prefix = 'welcome_message';
             let descToSave = 'Mensagem de Boas-vindas (WhatsApp)';
 
             if (editingId === 'recurring_welcome_message') {
-                keyToSave = 'recurring_welcome_message_template';
+                prefix = 'recurring_welcome_message';
                 descToSave = 'Mensagem de Boas-vindas (Convidado Recorrente)';
             } else if (editingId === 'duplicate_welcome_message') {
-                keyToSave = 'duplicate_welcome_message_template';
+                prefix = 'duplicate_welcome_message';
                 descToSave = 'Mensagem de Aviso (Cadastro Duplicado)';
             }
 
-            const { error } = await supabase
-                .from('app_config')
-                .upsert({ key: keyToSave, value: formData.message_template, description: descToSave });
+            const updates = [
+                { key: `${prefix}_template`, value: formData.message_template || '', description: descToSave }
+            ];
+
+            if (finalMediaUrl && !resetMedia) {
+                updates.push({ key: `${prefix}_media_url`, value: finalMediaUrl || '', description: `Mídia para ${descToSave}` });
+                updates.push({ key: `${prefix}_media_type`, value: finalMediaType || '', description: `Tipo Mídia para ${descToSave}` });
+                updates.push({ key: `${prefix}_media_name`, value: finalMediaName || '', description: `Nome Mídia para ${descToSave}` });
+            } else if (resetMedia) {
+                updates.push({ key: `${prefix}_media_url`, value: '', description: `Mídia para ${descToSave}` });
+                updates.push({ key: `${prefix}_media_type`, value: '', description: `Tipo Mídia para ${descToSave}` });
+                updates.push({ key: `${prefix}_media_name`, value: '', description: `Nome Mídia para ${descToSave}` });
+            }
+
+            const { error } = await supabase.from('app_config').upsert(updates);
 
             if (error) {
                 alert('Erro ao salvar mensagem: ' + error.message);
             } else {
-                if (editingId === 'recurring_welcome_message') setRecurringWelcomeMessage(formData.message_template);
-                else if (editingId === 'duplicate_welcome_message') setDuplicateWelcomeMessage(formData.message_template);
-                else setWelcomeMessage(formData.message_template);
+                fetchRules(); // Reload to get fresh states
                 setShowModal(false);
             }
+            setIsUploading(false);
             return;
         }
 
-        if (!formData.name || !formData.trigger_value) return;
+        if (!formData.name || !formData.trigger_value) {
+            setIsUploading(false);
+            return;
+        }
 
         let error;
         let data;
 
+        const payload = {
+            name: formData.name,
+            type: formData.type,
+            trigger_value: formData.trigger_value,
+            message_template: formData.message_template,
+            active: formData.active,
+            media_url: resetMedia ? null : finalMediaUrl,
+            media_type: resetMedia ? null : finalMediaType,
+            media_name: resetMedia ? null : finalMediaName
+        };
+
         if (editingId) {
-            const result = await supabase
-                .from('automation_rules')
-                .update({
-                    name: formData.name,
-                    type: formData.type,
-                    trigger_value: formData.trigger_value,
-                    message_template: formData.message_template,
-                    active: formData.active
-                })
-                .eq('id', editingId)
-                .select();
+            const result = await supabase.from('automation_rules').update(payload).eq('id', editingId).select();
             error = result.error;
             data = result.data;
         } else {
-            const result = await supabase
-                .from('automation_rules')
-                .insert([formData])
-                .select();
+            const result = await supabase.from('automation_rules').insert([payload]).select();
             error = result.error;
             data = result.data;
         }
 
+        setIsUploading(false);
         if (error) {
             alert('Erro ao salvar: ' + error.message);
         } else {
@@ -215,9 +322,7 @@ export default function Automation() {
     const triggerProcessQueue = async () => {
         setProcessing(true);
         try {
-            // Check if we are in dev or prod environment to determine URL
             const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            // Note: calling the Vercel function directly
             const response = await fetch(`${apiUrl}/cron/process-queue`, { method: 'POST' });
             const result = await response.json();
             alert(`Processamento concluído: ${JSON.stringify(result)}`);
@@ -272,18 +377,23 @@ export default function Automation() {
                         <div className="bg-white/5 p-3 rounded-lg border border-white/10 text-center relative group cursor-pointer hover:border-gold transition-colors"
                             onClick={() => {
                                 setEditingId('welcome_message');
+                                setSelectedFile(null);
                                 setFormData({
                                     name: 'Mensagem de Boas-vindas',
                                     type: 'signup_relative',
                                     trigger_value: '0',
                                     active: true,
-                                    message_template: welcomeMessage || ''
+                                    message_template: welcomeMessage || '',
+                                    media_url: welcomeMedia?.url,
+                                    media_type: welcomeMedia?.type,
+                                    media_name: welcomeMedia?.name
                                 });
                                 setShowModal(true);
                             }}
                         >
                             <span className="block text-xs text-gray-400 uppercase">Gatilho (Start)</span>
                             <span className="font-bold text-white">Cadastro <br /><span className="text-[10px] text-gray-500 font-normal">(1ª Vez)</span></span>
+                            {welcomeMedia && <Paperclip size={12} className="inline ml-1 text-gold" />}
                             <div className="absolute -top-2 -right-2 bg-gold/20 text-gold rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Edit2 size={12} />
                             </div>
@@ -293,18 +403,23 @@ export default function Automation() {
                         <div className="bg-white/5 p-3 rounded-lg border border-[#D4AF37]/30 text-center relative group cursor-pointer hover:border-gold transition-colors"
                             onClick={() => {
                                 setEditingId('recurring_welcome_message');
+                                setSelectedFile(null);
                                 setFormData({
                                     name: 'Mensagem Convidado Recorrente',
                                     type: 'signup_relative',
                                     trigger_value: '0',
                                     active: true,
-                                    message_template: recurringWelcomeMessage || ''
+                                    message_template: recurringWelcomeMessage || '',
+                                    media_url: recurringWelcomeMedia?.url,
+                                    media_type: recurringWelcomeMedia?.type,
+                                    media_name: recurringWelcomeMedia?.name
                                 });
                                 setShowModal(true);
                             }}
                         >
                             <span className="block text-xs text-[#D4AF37] uppercase">Gatilho (Start)</span>
                             <span className="font-bold text-gold">Cadastro <br /><span className="text-[10px] text-[#D4AF37] font-normal">(Recorrente)</span></span>
+                            {recurringWelcomeMedia && <Paperclip size={12} className="inline ml-1 text-gold" />}
                             <div className="absolute -top-2 -right-2 bg-gold/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Edit2 size={12} />
                             </div>
@@ -314,18 +429,23 @@ export default function Automation() {
                         <div className="bg-white/5 p-3 rounded-lg border border-red-500/30 text-center relative group cursor-pointer hover:border-red-500 transition-colors"
                             onClick={() => {
                                 setEditingId('duplicate_welcome_message');
+                                setSelectedFile(null);
                                 setFormData({
                                     name: 'Mensagem Cadastro Duplicado',
-                                    type: 'signup_relative', // Changed from 'signup_duplicate' to 'signup_relative' to match existing types
+                                    type: 'signup_relative',
                                     trigger_value: '0',
                                     active: true,
-                                    message_template: duplicateWelcomeMessage || ''
+                                    message_template: duplicateWelcomeMessage || '',
+                                    media_url: duplicateWelcomeMedia?.url,
+                                    media_type: duplicateWelcomeMedia?.type,
+                                    media_name: duplicateWelcomeMedia?.name
                                 });
                                 setShowModal(true);
                             }}
                         >
                             <span className="block text-xs text-red-400 uppercase">Gatilho (Bloqueio)</span>
                             <span className="font-bold text-red-500">Cadastro <br /><span className="text-[10px] text-red-400 font-normal">(Duplicado / Já Existe)</span></span>
+                            {duplicateWelcomeMedia && <Paperclip size={12} className="inline ml-1 text-gold" />}
                             <div className="absolute -top-2 -right-2 bg-red-500/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Edit2 size={12} />
                             </div>
@@ -338,7 +458,7 @@ export default function Automation() {
                                 <div className="absolute -top-3 left-4 bg-blue-900 text-blue-300 text-[10px] px-2 py-0.5 rounded border border-blue-500/50 font-bold uppercase tracking-wider">
                                     +{rule.trigger_value} min
                                 </div>
-                                <h4 className="font-bold text-sm mb-1">{rule.name}</h4>
+                                <h4 className="font-bold text-sm mb-1">{rule.name} {rule.media_url && <Paperclip size={12} className="inline text-gold" />}</h4>
                                 <p className="text-xs text-gray-400 line-clamp-1">{rule.message_template}</p>
                                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                     <button onClick={() => handleEdit(rule)} className="p-1 bg-black/50 rounded hover:text-gold"><Edit2 size={12} /></button>
@@ -376,6 +496,11 @@ export default function Automation() {
                         <div className="bg-black/30 p-3 rounded text-sm text-gray-300 font-mono line-clamp-3">
                             {rule.message_template}
                         </div>
+                        {rule.media_url && (
+                            <div className="mt-3 text-xs text-blue-400 flex items-center gap-1">
+                                <Paperclip size={12} /> Anexo: {rule.media_name || 'Arquivo'}
+                            </div>
+                        )}
                         <div className="mt-4 flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full ${rule.active ? 'bg-green-500' : 'bg-red-500'}`}></span>
                             <span className="text-xs text-gray-400 uppercase">{rule.active ? 'Ativo' : 'Inativo'}</span>
@@ -460,9 +585,46 @@ export default function Automation() {
                                 />
                             </div>
 
+                            <div>
+                                <label className="block text-xs uppercase text-gray-400 mb-1">Anexo de Mídia (PDF, Imagem, Vídeo, Áudio)</label>
+                                <div className="bg-white/5 border border-white/10 rounded p-3 text-sm flex items-center justify-between">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <Paperclip size={16} className="text-gold shrink-0" />
+                                        <span className="truncate max-w-[200px] text-gray-300">
+                                            {selectedFile?.name || formData.media_name || 'Nenhum arquivo anexado...'}
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {(selectedFile || formData.media_url) && (
+                                            <button
+                                                onClick={clearMedia}
+                                                className="p-1.5 rounded hover:bg-white/10 text-red-400 transition-colors"
+                                                title="Remover anexo"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors uppercase text-xs font-bold tracking-widest"
+                                        >
+                                            {selectedFile || formData.media_url ? 'Trocar' : 'Anexar'}
+                                        </button>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            ref={fileInputRef}
+                                            onChange={handleFileChange}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="flex justify-end gap-3 pt-4">
-                                <button onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancelar</button>
-                                <button onClick={handleSave} className="btn-gold px-6 py-2 rounded font-bold uppercase tracking-widest">Salvar</button>
+                                <button onClick={() => setShowModal(false)} disabled={isUploading} className="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancelar</button>
+                                <button onClick={handleSave} disabled={isUploading} className="btn-gold px-6 py-2 rounded font-bold uppercase tracking-widest disabled:opacity-50">
+                                    {isUploading ? 'Salvando...' : 'Salvar'}
+                                </button>
                             </div>
                         </div>
                     </div>

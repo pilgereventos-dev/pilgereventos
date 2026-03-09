@@ -84,17 +84,41 @@ export const processQueue = inngest.createFunction(
                 if (!number.startsWith('55')) number = '55' + number;
 
                 try {
-                    const response = await fetch(`${config.apiUrl}/message/sendText/${config.instanceName}`, {
+                    let endpoint = `${config.apiUrl}/message/sendText/${config.instanceName}`;
+                    let reqBody: any = {
+                        number: number,
+                        options: { delay: 1200, presence: "composing" },
+                        textMessage: { text: msg.content },
+                    };
+
+                    if (msg.media_url) {
+                        endpoint = `${config.apiUrl}/message/sendMedia/${config.instanceName}`;
+                        let mediaType = 'document';
+                        if (msg.media_type) {
+                            if (msg.media_type.startsWith('image')) mediaType = 'image';
+                            else if (msg.media_type.startsWith('video')) mediaType = 'video';
+                            else if (msg.media_type.startsWith('audio')) mediaType = 'audio';
+                        }
+
+                        reqBody = {
+                            number: number,
+                            options: { delay: 1200, presence: "composing" },
+                            mediaMessage: {
+                                mediatype: mediaType,
+                                fileName: msg.media_name || 'arquivo',
+                                caption: msg.content,
+                                media: msg.media_url
+                            }
+                        };
+                    }
+
+                    const response = await fetch(endpoint, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'apikey': config.apiKey,
                         },
-                        body: JSON.stringify({
-                            number: number,
-                            options: { delay: 1200, presence: "composing" },
-                            textMessage: { text: msg.content },
-                        }),
+                        body: JSON.stringify(reqBody),
                     });
 
                     if (response.ok) {

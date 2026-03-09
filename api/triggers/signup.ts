@@ -68,7 +68,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     scheduled_for: scheduledIso,
                     status: 'pending',
                     target_phone: guest.phone,
-                    target_name: guest.name
+                    target_name: guest.name,
+                    media_url: rule.media_url,
+                    media_type: rule.media_type,
+                    media_name: rule.media_name
                 });
 
                 // 2. Companion 1 Item
@@ -80,7 +83,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
                         scheduled_for: scheduledIso,
                         status: 'pending',
                         target_phone: guest.companion1_phone,
-                        target_name: guest.companion1_name
+                        target_name: guest.companion1_name,
+                        media_url: rule.media_url,
+                        media_type: rule.media_type,
+                        media_name: rule.media_name
                     });
                 }
 
@@ -93,7 +99,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
                         scheduled_for: scheduledIso,
                         status: 'pending',
                         target_phone: guest.companion2_phone,
-                        target_name: guest.companion2_name
+                        target_name: guest.companion2_name,
+                        media_url: rule.media_url,
+                        media_type: rule.media_type,
+                        media_name: rule.media_name
                     });
                 }
             });

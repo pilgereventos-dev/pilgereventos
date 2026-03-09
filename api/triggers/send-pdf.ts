@@ -40,14 +40,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
             return response.status(400).json({ error: 'Guest has no phone number' });
         }
 
-        // 2. Fetch ConnectyHub credentials
+        // 2. Fetch ConnectyHub credentials & Welcome configuration
         const { data: configData, error: configError } = await supabase
             .from('app_config')
             .select('key, value')
             .in('key', [
                 'connectyhub_api_url',
                 'connectyhub_api_key',
-                'connectyhub_instance'
+                'connectyhub_instance',
+                'welcome_message_template',
+                'welcome_message_media_url',
+                'welcome_message_media_type',
+                'welcome_message_media_name'
             ]);
 
         if (configError || !configData) {
@@ -62,43 +66,62 @@ export default async function handler(request: VercelRequest, response: VercelRe
         const apiKey = config.connectyhub_api_key;
         const instanceName = config.connectyhub_instance;
 
+        // Message and Media
+        const messageTemplate = config.welcome_message_template || 'Olá {name}, seu cadastro foi recebido com sucesso!';
+        const messageContent = messageTemplate.replace(/{name}/g, guest.name);
+
+        const mediaUrl = config.welcome_message_media_url;
+        const mediaTypeRaw = config.welcome_message_media_type;
+        const mediaName = config.welcome_message_media_name || 'anexo';
+
         if (!apiUrl || !apiKey || !instanceName) {
             console.error('Missing ConnectyHub credentials. Found keys:', Object.keys(config));
             return response.status(500).json({ error: 'API credentials not configured in database' });
         }
 
-        // 3. Use public URL for the PDF (served as static file from /public)
-        const host = request.headers.host || 'pilgereventos.vercel.app';
-        const protocol = host.includes('localhost') ? 'http' : 'https';
-        const pdfUrl = `${protocol}://${host}/relatorio-sc.pdf`;
-        console.log('PDF URL:', pdfUrl);
-
-        // 4. Format phone number
+        // 3. Format phone number
         const cleanPhone = guest.phone.replace(/\D/g, '');
         const number = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-        console.log('Sending PDF to number:', number);
+        console.log(`Sending Welcome API to number: ${number}`);
 
-        // 5. Send PDF via ConnectyHub sendMedia API using URL
-        const sendMediaPayload = {
+        // 4. Send Content (Text or Media)
+        let endpoint = `${apiUrl}/message/sendText/${instanceName}`;
+        let requestBody: any = {
             number: number,
-            mediatype: "document",
-            mimetype: "application/pdf",
-            caption: `Olá ${guest.name}! Conforme solicitado, segue o seu Relatório Estratégico SC exclusivo.\n\nAtenciosamente,\nEquipe Guilherme Pilger`,
-            media: pdfUrl,
-            fileName: `Relatorio_Estrategico_SC.pdf`,
+            options: { delay: 1200, presence: "composing" },
+            textMessage: { text: messageContent }
         };
 
-        const targetUrl = `${apiUrl}/message/sendMedia/${instanceName}`;
-        console.log('Sending to:', targetUrl);
-        console.log('Payload keys:', Object.keys(sendMediaPayload));
+        if (mediaUrl) {
+            // Determine mediatype for ConnectyHub
+            let mediaTypeParams = 'document';
+            if (mediaTypeRaw) {
+                if (mediaTypeRaw.startsWith('image')) mediaTypeParams = 'image';
+                else if (mediaTypeRaw.startsWith('video')) mediaTypeParams = 'video';
+                else if (mediaTypeRaw.startsWith('audio')) mediaTypeParams = 'audio';
+            }
 
-        const apiResponse = await fetch(targetUrl, {
+            endpoint = `${apiUrl}/message/sendMedia/${instanceName}`;
+            requestBody = {
+                number: number,
+                options: { delay: 1200, presence: "composing" },
+                mediaMessage: {
+                    mediatype: mediaTypeParams,
+                    fileName: mediaName,
+                    caption: messageContent,
+                    media: mediaUrl
+                }
+            };
+        }
+
+        console.log(`Calling ConnectyHub API: ${endpoint}`);
+        const apiResponse = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'apikey': apiKey,
             },
-            body: JSON.stringify(sendMediaPayload),
+            body: JSON.stringify(requestBody),
         });
 
         if (!apiResponse.ok) {
@@ -108,9 +131,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
         }
 
         const data = await apiResponse.json();
-        console.log('PDF sent successfully:', data);
+        console.log('Welcome payload sent successfully:', data);
 
-        // 6. Mark WhatsApp as sent
+        // 5. Mark WhatsApp as sent
         await supabase
             .from('guests')
             .update({ whatsapp_sent: true })
