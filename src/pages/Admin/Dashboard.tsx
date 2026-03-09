@@ -97,14 +97,22 @@ export default function Dashboard() {
         if (!confirm(`Reenviar WhatsApp para ${guest.name}?`)) return;
 
         try {
-            const response = await fetch('/api/send-whatsapp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const isRelatorioSC = guest.event_name === 'relatorio-sc';
+            const endpoint = isRelatorioSC ? '/api/triggers/send-pdf' : '/api/send-whatsapp';
+
+            const payload = isRelatorioSC
+                ? { guest_id: guest.id }
+                : {
                     name: guest.name,
                     phone: guest.phone,
-                    guests_count: guest.guests_count
-                }),
+                    guests_count: guest.guests_count,
+                    is_recurring: guest.is_recurring
+                };
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             });
 
             if (response.ok) {
