@@ -87,8 +87,7 @@ export const processQueue = inngest.createFunction(
                     let endpoint = `${config.apiUrl}/message/sendText/${config.instanceName}`;
                     let reqBody: any = {
                         number: number,
-                        options: { delay: 1200, presence: "composing" },
-                        textMessage: { text: msg.content },
+                        text: msg.content
                     };
 
                     if (msg.media_url) {

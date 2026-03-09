@@ -88,8 +88,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         let endpoint = `${apiUrl}/message/sendText/${instanceName}`;
         let requestBody: any = {
             number: number,
-            options: { delay: 1200, presence: "composing" },
-            textMessage: { text: messageContent }
+            text: messageContent
         };
 
         if (mediaUrl) {
